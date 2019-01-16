@@ -1,9 +1,4 @@
-
-
-
 import itertools
-
-
 import numpy as np
 import json
 import urllib
@@ -26,15 +21,14 @@ class Configuration(object):
         self.__dict__ = json.load(j)
 
 
+
 def runSCRO(numIt, nPobl, numSeg, pCross, pMut, seed, sizeChromosome, polyDegree, percentage_hybridation):
 
     return None
 
-
 def runTest():
 
     # Loading MNIST dataset
-
     mnist_alternative_url = "https://github.com/amplab/datascience-sp14/raw/master/lab7/mldata/mnist-original.mat"
     mnist_path = "./mnist-original.mat"
     response = urllib.urlopen(mnist_alternative_url)
@@ -72,8 +66,9 @@ def runTest():
 #################################################
 #################################################
 
-#  OPERATORS
 
+
+#  OPERATORS
 
 # TODO: check: reef is a list.
 def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, ke):
@@ -114,7 +109,6 @@ def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, k
         print str(ind.fitness)
     return new_population
 
-
 def initial_deletion_check(fitness, fitness_mean, fitness_std):
 
     return (fitness_mean - fitness_std) < fitness <= 1
@@ -133,28 +127,25 @@ def fitness_mean_std(population):
 
     return fitness_mean, fitness_std
 
-
 # Asexual reproduction
+
 def asexual_reproduction():
-
-
 
     return None
 
-
 # Asexual selection
-def asexual_selection(population, fitness, nPobl, Fa):
+def asexual_selection(population, fa):
     """
 
     :param population: set of chromosomes
-    :param fitness: fitness of each individual
-    :param nPobl: population size
-    :param Fa: percentage of asexual reproduction (selection)
-    :return: newPopulation: selected population
-    :return: newFitness: fitness of the new population
+    :param fa: percentage of asexual reproduction (selection)
+    :return: aLarvae: selected larvae
     """
-    return newPopulation, newFitness
-
+    sorted_population = sorted(population, key=lambda coral: coral.my_fitness if coral is not None else -1, reverse=True)
+    max_value = round(fa * len(filter(lambda x: x is not None, population)))
+    idx = random.randrange(0, max_value)
+    # TODO: What if there is nothing but holes in the population?
+    return copy.deepcopy(sorted_population[idx])
 
 # Sexual reproduction
 def sexual_reproduction(population):
@@ -242,7 +233,6 @@ def coral_replacement(population, fitness, nPobl, poolPopulation, poolFitness, N
 
     return None
 
-
 # Depredation
 def depredation(population, fitness1, Fd, pDep):
     """
@@ -255,7 +245,12 @@ def depredation(population, fitness1, Fd, pDep):
     :return: newFitness1: updated fitness
     """
 
+
     return None
+
+
+
+
 
 
 #################################################
@@ -263,6 +258,10 @@ def depredation(population, fitness1, Fd, pDep):
 ######   INDIVIDUALS AND FITNESS        #########
 #################################################
 #################################################
+
+
+
+
 
 class GlobalAttributes:
     """
@@ -272,7 +271,6 @@ class GlobalAttributes:
     def __init__(self, config):
         for global_parameter_name in config.global_parameters.keys():
             setattr(self, global_parameter_name, generate_random_global_parameter(global_parameter_name, config))
-
 
 #################################################
 # Individual class, from EvoDeep
@@ -338,7 +336,6 @@ class Individual(object):
         return "I: " + ",".join(map(str, self.net_struct))
 #################################################
 
-
 #################################################
 # Layer class
 #################################################
@@ -392,7 +389,6 @@ class Layer:
             map(lambda (k, v): k[:4] + ":" + str(v), self.parameters.items())) + ")]"
 #################################################
 
-
 def dummy_eval(individual):
 
     evaluation = {
@@ -405,8 +401,6 @@ def dummy_eval(individual):
 
 
 def eval_keras(individual, ke):
-
-    # Todo: accuracy over test set should be evaluated in the training step
     sys.stdout.write(".")
     sys.stdout.flush()
 
@@ -446,7 +440,6 @@ def create_random_valid_layer(config, last_layer_output_type, n_input_outputs=No
 
     return layer
 
-
 def parser_parameter_types(parameter_config, parameter):
     if parameter == "categorical":
         return parameter_config["values"][random.randrange(0, len(parameter_config["values"]))]
@@ -477,8 +470,6 @@ def parser_parameter_types(parameter_config, parameter):
 
     else:
         print "PARAMETER " + parameter + " NOT DEFINED"
-# Evaluation
-
 
 def generate_random_global_parameter(parameter_name, configuration):
     """
@@ -492,7 +483,6 @@ def generate_random_global_parameter(parameter_name, configuration):
     parameter_config = configuration.global_parameters[parameter_name]
 
     return parser_parameter_types(parameter_config, parameter_type)
-
 
 def generate_random_layer_parameter(parameter_name, layer_type, configuration):
     """
@@ -519,6 +509,5 @@ def eval_population(population, ke):
             # ind.fitness = eval_keras(ind, ke)
             ind.fitness = dummy_eval(ind)
 
-    return population
 
 runTest()
