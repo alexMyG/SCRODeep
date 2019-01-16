@@ -6,14 +6,14 @@ from math import sqrt, ceil, trunc
 import pandas as pd
 from numpy.ma import true_divide
 from sklearn import preprocessing
-from sklearn.cross_validation import train_test_split
+from sklearn.model_selection import train_test_split
 
 from keras.models import Sequential
 from keras.layers import Dense, Reshape, Flatten, MaxPooling2D
 from keras.layers import Dropout, Convolution2D
 from keras import callbacks
-from keras.utils import np_utils
-
+# from keras.utils import np_utils
+from keras.utils import to_categorical
 
 class KerasExecutor:
     # The number of neurons in the first and last layer included in network-structure is ommited.
@@ -36,7 +36,7 @@ class KerasExecutor:
         le = preprocessing.LabelEncoder()
         le.fit(y)
         y_numeric = le.transform(y)
-        self.y_hot_encoding = np_utils.to_categorical(y_numeric).astype(float)
+        self.y_hot_encoding = to_categorical(y_numeric).astype(float)
 
         self.n_in = len(self.x[1])
         self.n_out = len(self.y_hot_encoding[1])

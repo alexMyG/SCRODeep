@@ -1,7 +1,17 @@
+
+
+
 import itertools
+
+
 import numpy as np
 import json
 import urllib
+import os.path
+from copy import deepcopy
+import random
+from greenery.fsm import fsm
+
 from KerasExecutor import KerasExecutor
 
 from scipy.io import loadmat
@@ -16,20 +26,24 @@ class Configuration(object):
         self.__dict__ = json.load(j)
 
 
-
 def runSCRO(numIt, nPobl, numSeg, pCross, pMut, seed, sizeChromosome, polyDegree, percentage_hybridation):
 
     return None
 
+
 def runTest():
 
     # Loading MNIST dataset
+
     mnist_alternative_url = "https://github.com/amplab/datascience-sp14/raw/master/lab7/mldata/mnist-original.mat"
     mnist_path = "./mnist-original.mat"
     response = urllib.urlopen(mnist_alternative_url)
-    with open(mnist_path, "wb") as f:
-        content = response.read()
-        f.write(content)
+
+    if not os.path.isfile(mnist_path):
+        with open(mnist_path, "wb") as f:
+            print "Downloading data"
+            content = response.read()
+            f.write(content)
     mnist_raw = loadmat(mnist_path)
     dataset = {
         "data": mnist_raw["data"].T,
@@ -40,10 +54,14 @@ def runTest():
 
     test_size = 0.2
 
+    print "Starting keras executor"
     ke = KerasExecutor(dataset, test_size, metrics, early_stopping_patience, loss)
 
-    configuration = Configuration("parametersGenetic.json")
+    config_data = open('parametersGenetic.json')
 
+    configuration = Configuration(config_data)
+
+    population = initialisation(Rsize=4, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
 
 
 #################################################
@@ -52,9 +70,8 @@ def runTest():
 #################################################
 #################################################
 
-
-
 #  OPERATORS
+
 
 # TODO: check: reef is a list.
 def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, ke):
@@ -71,43 +88,55 @@ def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, k
     :return:
     """
     # Creating population of Rsize*Rsize new random individuals
-    #population = [[Individual(config, n_global_in, n_global_out)]*Rsize for _ in range(Rsize)]
+    # population = [[Individual(config, n_global_in, n_global_out)]*Rsize for _ in range(Rsize)]
     population = [Individual(config, n_global_in, n_global_out) for _ in range(Rsize*Rsize)]
     print "Reef created with " + str(len(population)) + " solutions"
+    print "Original size: " + str(len(population))
+
+    # Eval population
+
+    eval_population(population, ke)
+    for ind in population:
+        print str(ind.fitness)
 
     # Calculating fitness mean and std deviation
-    fitness_mean, fitness_std = population_fitnesses_calc(population, ke)
+    fitness_mean, fitness_std = fitness_mean_std(population)
 
     # Deleting corals according to formula
-    #new_population = [[ind if initial_deletion_check(ind.my_fitness, fitness_mean, fitness_std) else None for ind in line ] for line in population]
-    new_population = [ind if initial_deletion_check(ind.my_fitness, fitness_mean, fitness_std) else None for ind in population]
+    # new_population = [[ind if initial_deletion_check(ind.fitness, fitness_mean, fitness_std) else None for ind in line ] for line in population]
+    new_population = [ind if initial_deletion_check(ind.fitness["accuracy_validation"], fitness_mean, fitness_std) else None for ind in population]
 
-    print "Population reduced to: " + str(len(new_population)) + " solutions"
+    print "Population reduced to: " + str(len(filter(lambda w: w is not None, new_population))) + " solutions"
 
+    for ind in filter(lambda w: w is not None, new_population):
+        print str(ind.fitness)
     return new_population
+
 
 def initial_deletion_check(fitness, fitness_mean, fitness_std):
 
     return (fitness_mean - fitness_std) < fitness <= 1
 
-def population_fitnesses_calc(population):
+
+def fitness_mean_std(population):
 
     # fitnesses_reef = np.array([[eval_keras(x, ke) if x is not None else None for x in line ] for line in population])
 
     # Todo: originally individuals will not be evaluated? : to check
-    # Todo: create my_fitness in the individual
-    fitnesses_reef = np.array([ind.my_fitness for ind in population if ind is not None])  # None are removed
+    # Todo: create fitness in the individual
+    fitnesses_reef = np.array([ind.fitness["accuracy_validation"] for ind in population if ind is not None])  # None are removed
 
     fitness_mean = fitnesses_reef.mean()
     fitness_std = fitnesses_reef.std()
 
     return fitness_mean, fitness_std
 
-# Asexual reproduction
 
+# Asexual reproduction
 def asexual_reproduction():
 
     return None
+
 
 # Asexual selection
 def asexual_selection(population, fitness, nPobl, Fa):
@@ -122,22 +151,23 @@ def asexual_selection(population, fitness, nPobl, Fa):
     """
     return newPopulation, newFitness
 
+
 # Sexual reproduction
 def sexual_reproduction(population):
-    population.sort(key=lambda x: x.my_fitness, reverse=True)
+    population.sort(key=lambda x: x.fitness, reverse=True)
 
 
 # Crossover
 def crossover():
+    return None
+
 
 # Mutation
 def mutation():
-
-# Evaluation
-def evaluation():
+    return None
 
 
-#Coral replacement
+# Coral replacement
 def coral_replacement(population, fitness, nPobl, poolPopulation, poolFitness, Natt):
     """
 
@@ -153,6 +183,7 @@ def coral_replacement(population, fitness, nPobl, poolPopulation, poolFitness, N
 
     return None
 
+
 # Depredation
 def depredation(population, fitness1, Fd, pDep):
     """
@@ -165,12 +196,7 @@ def depredation(population, fitness1, Fd, pDep):
     :return: newFitness1: updated fitness
     """
 
-
     return None
-
-
-
-
 
 
 #################################################
@@ -178,10 +204,6 @@ def depredation(population, fitness1, Fd, pDep):
 ######   INDIVIDUALS AND FITNESS        #########
 #################################################
 #################################################
-
-
-
-
 
 class GlobalAttributes:
     """
@@ -191,6 +213,7 @@ class GlobalAttributes:
     def __init__(self, config):
         for global_parameter_name in config.global_parameters.keys():
             setattr(self, global_parameter_name, generate_random_global_parameter(global_parameter_name, config))
+
 
 #################################################
 # Individual class, from EvoDeep
@@ -206,6 +229,7 @@ class Individual(object):
 
         self.net_struct = []
 
+        self.fitness=None
 
         state_machine = fsm(alphabet=set(config.fsm['alphabet']),
                             states=set(config.fsm['states']),
@@ -254,6 +278,7 @@ class Individual(object):
     def __repr__(self):
         return "I: " + ",".join(map(str, self.net_struct))
 #################################################
+
 
 #################################################
 # Layer class
@@ -308,10 +333,21 @@ class Layer:
             map(lambda (k, v): k[:4] + ":" + str(v), self.parameters.items())) + ")]"
 #################################################
 
+
 def dummy_eval(individual):
-    return random.random(), random.randrange(2, 10), random.random(), random.random(),
+
+    evaluation = {
+        "accuracy_validation": random.random(),
+        "number_layers": random.randrange(2, 10),
+        "accuracy_training": random.random(),
+        "accuracy_test": random.random()
+    }
+    return evaluation
+
 
 def eval_keras(individual, ke):
+
+    # Todo: accuracy over test set should be evaluated in the training step
     sys.stdout.write(".")
     sys.stdout.flush()
 
@@ -324,7 +360,14 @@ def eval_keras(individual, ke):
 
     number_layers = individual.global_attributes.number_layers
 
-    return accuracy_validation, number_layers, accuracy_training, accuracy_test,
+    evaluation = {
+        "accuracy_validation": accuracy_validation,
+        "number_layers": number_layers,
+        "accuracy_training": accuracy_training,
+        "accuracy_test": accuracy_test
+    }
+    return evaluation
+
 
 def create_random_valid_layer(config, last_layer_output_type, n_input_outputs=None, layer_position=None):
     """
@@ -343,6 +386,7 @@ def create_random_valid_layer(config, last_layer_output_type, n_input_outputs=No
     layer = Layer(possible_layers, config, layer_position, n_input_outputs)
 
     return layer
+
 
 def parser_parameter_types(parameter_config, parameter):
     if parameter == "categorical":
@@ -374,6 +418,8 @@ def parser_parameter_types(parameter_config, parameter):
 
     else:
         print "PARAMETER " + parameter + " NOT DEFINED"
+# Evaluation
+
 
 def generate_random_global_parameter(parameter_name, configuration):
     """
@@ -387,6 +433,7 @@ def generate_random_global_parameter(parameter_name, configuration):
     parameter_config = configuration.global_parameters[parameter_name]
 
     return parser_parameter_types(parameter_config, parameter_type)
+
 
 def generate_random_layer_parameter(parameter_name, layer_type, configuration):
     """
@@ -406,7 +453,13 @@ def generate_random_layer_parameter(parameter_name, layer_type, configuration):
     return parser_parameter_types(parameter_config, parameter_type)
 
 
+def eval_population(population, ke):
 
+    for ind in population:
+        if ind is not None:
+            # ind.fitness = eval_keras(ind, ke)
+            ind.fitness = dummy_eval(ind)
 
+    return population
 
-
+runTest()
