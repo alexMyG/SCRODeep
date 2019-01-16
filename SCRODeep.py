@@ -1,7 +1,11 @@
+import copy
 import itertools
 import numpy as np
 import json
+import random
 import urllib
+from greenery.fsm import fsm
+
 from KerasExecutor import KerasExecutor
 
 from scipy.io import loadmat
@@ -110,17 +114,18 @@ def asexual_reproduction():
     return None
 
 # Asexual selection
-def asexual_selection(population, fitness, nPobl, Fa):
+def asexual_selection(population, fa):
     """
 
     :param population: set of chromosomes
-    :param fitness: fitness of each individual
-    :param nPobl: population size
-    :param Fa: percentage of asexual reproduction (selection)
-    :return: newPopulation: selected population
-    :return: newFitness: fitness of the new population
+    :param fa: percentage of asexual reproduction (selection)
+    :return: aLarvae: selected larvae
     """
-    return newPopulation, newFitness
+    sorted_population = sorted(population, key=lambda coral: coral.my_fitness if coral is not None else -1, reverse=True)
+    max_value = round(fa * len(filter(lambda x: x is not None, population)))
+    idx = random.randrange(0, max_value)
+    # TODO: What if there is nothing but holes in the population?
+    return copy.deepcopy(sorted_population[idx])
 
 # Sexual reproduction
 def sexual_reproduction(population):
@@ -129,13 +134,15 @@ def sexual_reproduction(population):
 
 # Crossover
 def crossover():
+    return None
 
 # Mutation
 def mutation():
+    return None
 
 # Evaluation
 def evaluation():
-
+    return None
 
 #Coral replacement
 def coral_replacement(population, fitness, nPobl, poolPopulation, poolFitness, Natt):
@@ -315,7 +322,7 @@ def eval_keras(individual, ke):
     sys.stdout.write(".")
     sys.stdout.flush()
 
-    my_ke = deepcopy(ke)
+    my_ke = copy.deepcopy(ke)
 
     metrics_names, scores_training, scores_validation, scores_test, model = my_ke.execute(individual)
     accuracy_training = scores_training[metrics_names.index("acc")]
