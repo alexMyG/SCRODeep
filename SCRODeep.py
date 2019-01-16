@@ -21,13 +21,27 @@ def runSCRO(numIt, nPobl, numSeg, pCross, pMut, seed, sizeChromosome, polyDegree
 
 # TODO: ¿el arrecife es cuadrado RxR?
 def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, ke):
-
+    """
+    Initialisation function. It creates the first population with a reef or Rsize*Rsize.
+    At first all positions are filled with random individuals.
+    A set of random corals are deleted according to the formula fi not in (f_1 - sf1, 1]
+    :param Rsize:
+    :param rate_free_corals:
+    :param config:
+    :param n_global_in:
+    :param n_global_out:
+    :param ke:
+    :return:
+    """
+    # Creating population of Rsize*Rsize new random individuals
     population = [[Individual(config, n_global_in, n_global_out)]*Rsize for _ in range(Rsize)]
 
     # TODO remove positions in the initial population according to paper
 
+    # Calculating fitness mean and std deviation
     fitnesses_reef, fitness_mean, fitness_std = population_fitnesses_calc(population, ke)
 
+    # Deleting corals according to formula
     new_population = [[ind if initial_deletion_check(ind.my_fitness, fitness_mean, fitness_std) else None for ind in line ] for line in population]
 
     return new_population
