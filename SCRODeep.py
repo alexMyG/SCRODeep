@@ -11,7 +11,7 @@ import os.path
 from copy import deepcopy
 import random
 from greenery.fsm import fsm
-
+from random import shuffle
 from KerasExecutor import KerasExecutor
 
 from scipy.io import loadmat
@@ -62,6 +62,8 @@ def runTest():
     configuration = Configuration(config_data)
 
     population = initialisation(Rsize=4, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+
+
 
 
 #################################################
@@ -135,6 +137,8 @@ def fitness_mean_std(population):
 # Asexual reproduction
 def asexual_reproduction():
 
+
+
     return None
 
 
@@ -154,17 +158,72 @@ def asexual_selection(population, fitness, nPobl, Fa):
 
 # Sexual reproduction
 def sexual_reproduction(population):
-    population.sort(key=lambda x: x.fitness, reverse=True)
+    # population.sort(key=lambda x: x.fitness, reverse=True)
+
+    new_population = []
+
+    # A random fraction Fb of the individuals is selected uniformly
+
+    not_none_population = filter(lambda w: w is not None, population)
+
+    fitness_mean, fitness_std = fitness_mean_std(not_none_population)
+
+    range_min = (fitness_mean - fitness_std)
+    range_max = 1
+
+    # Population subset for EXTERNAL sexual reproduction
+    # Todo: check if max bound can be removed
+    external_pairs = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max, not_none_population)
+
+    # Population subset for INTERNAL sexual reproduction
+    internal_individuals = filter(lambda ind: range_min >= ind.fitness["accuracy_validation"], not_none_population)
+
+
+
+    if len(external_pairs) % 2 == 1:
+        # MOVER DE EXTERNAL PAIRS A
+    # if not even number, move to other set
+
+    # Todo assuming that external pair is even
+    ########################################################
+    # External
+    ########################################################
+    shuffle(external_pairs)
+
+    for i in range(0, len(external_pairs), 2):
+
+        ind1, ind2 = external_pairs[i], external_pairs[i+1]
+
+        new_individual = crossover(ind1, ind2)
+        new_population.append(new_individual)
+    ########################################################
+
+
+
+    ########################################################
+    # Internal
+    ########################################################
+    for ind in internal_individuals:
+        new_individual = mutation(ind)
+        new_population.append(new_individual)
+
+    ########################################################
+
+
+
+
+
+
 
 
 # Crossover
-def crossover():
-    return None
+def crossover(ind1, ind2):
+    return new_individual
 
 
 # Mutation
-def mutation():
-    return None
+def mutation(ind):
+    return new_individual
 
 
 # Coral replacement
