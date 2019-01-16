@@ -1,6 +1,7 @@
 
 
 import itertools
+import numpy as np
 
 
 
@@ -12,8 +13,40 @@ import itertools
 #################################################
 
 
+def runSCRO(numIt, nPobl, numSeg, pCross, pMut, seed, sizeChromosome, polyDegree, percentage_hybridation):
+
+
 
 #  OPERATORS
+
+# TODO: ¿el arrecife es cuadrado RxR?
+def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, ke):
+
+    population = [[Individual(config, n_global_in, n_global_out)]*Rsize for _ in range(Rsize)]
+
+    # TODO remove positions in the initial population according to paper
+
+    fitnesses_reef, fitness_mean, fitness_std = population_fitnesses_calc(population, ke)
+
+    new_population = [[ind if initial_deletion_check(ind.my_fitness, fitness_mean, fitness_std) else None for ind in line ] for line in population]
+
+    return new_population
+
+def initial_deletion_check(fitness, fitness_mean, fitness_std):
+
+    return (fitness_mean - fitness_std) < fitness <= 1
+
+def population_fitnesses_calc(population):
+
+    # fitnesses_reef = np.array([[eval_keras(x, ke) if x is not None else None for x in line ] for line in population])
+
+    # Todo: originally individuals will not be evaluated? : to check
+    fitnesses_reef = np.array([[ind.my_fitness if x is not None else None for x in line] for line in population])
+    # Todo: check where it is saved the correct fitness, in my_fitness or in fitness.values
+    fitness_mean = fitnesses_reef.mean()
+    fitness_std = fitnesses_reef.std()
+
+    return fitnesses_reef, fitness_mean, fitness_std
 
 # Asexual reproduction
 
