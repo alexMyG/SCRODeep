@@ -1,14 +1,10 @@
-# coding=utf-8
-# import copy
-# import Individual
 import random
 
 import itertools
 from greenery.fsm import fsm
 
 # from deap import tools
-from algorithm import Layer, generate_random_global_parameter, generate_random_layer_parameter, \
-    create_random_valid_layer
+from Individual import Layer, generate_random_global_parameter, generate_random_layer_parameter
 
 
 def complete_crossover(ind1, ind2, indpb, config):
@@ -213,41 +209,4 @@ def internal_mutation_fsm(ind, indpb, new_layer_pb, config):
                 ind.net_struct = ind.net_struct[:position+1] + candidate[1:-1] + ind.net_struct[position + 1:]
 
     ind.global_attributes.number_layers = len(ind.net_struct)
-    return ind
-
-
-def internal_mutation_with_restrictions(ind, indpb, new_layer_pb, config):
-    """
-    Mutates an individual following the input/output restrictions of layers
-    :param n_global_out: global number of outputs
-    :param n_global_in: global number of inputs
-    :param ind: individual to mutate
-    :param indpb: probability of mutation
-    :param new_layer_pb: probability of adding a new layer to the individual
-    :param config:
-    :return: mutated individual
-    """
-    num_layers = len(ind.net_struct)
-    for pos_layer in range(0, num_layers):
-
-        parameters_dict = ind.net_struct[pos_layer].parameters
-        layer_type = ind.net_struct[pos_layer].type
-        for parameter in parameters_dict.keys():
-            # TODO REVISAR
-            if random.random() < indpb and parameter != 'input_shape' and parameter != 'output_dim':
-                parameters_dict[parameter] = generate_random_layer_parameter(parameter, layer_type, config)
-
-    if num_layers <= config.global_parameters['number_layers']['values'][1] and random.random() < new_layer_pb:
-        # Randomly selects a position
-        position = random.randrange(0, len(ind.net_struct) - 1)
-
-        # Randomly selects a layer type depending on the previous layer
-        last_layer_type_output = config.layers[ind.net_struct[position].type]['out']
-        new_layer = create_random_valid_layer(config, last_layer_type_output)
-
-        # Inserts the new layer right after the selected position
-        ind.net_struct.insert(position + 1, new_layer)
-
-    ind.global_attributes.number_layers = len(ind.net_struct)
-
     return ind

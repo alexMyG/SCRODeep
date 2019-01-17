@@ -1,20 +1,29 @@
-import itertools
 import numpy as np
 import json
 import urllib
 import os.path
-from copy import deepcopy
-import random
-from greenery.fsm import fsm
+
 from random import shuffle
 from KerasExecutor import KerasExecutor
+from operator import attrgetter
 
 from scipy.io import loadmat
 
+from OperatorsDeep import complete_crossover, complete_mutation
 
+from Individual import *
 metrics = ["accuracy"]
 early_stopping_patience = 100
 loss = "categorical_crossentropy"
+
+
+"""
+IMPORTANT NOTE
+
+REEF IS A LIST WITH INDIVIDUALS AND NONE POSITIONS.
+POPULATION IS A SET OF INDIVIDUALS WHERE THE ORDER IN THE LIST DOES NOT MATTER WHICH CAN CONTAIN NONE VALUES
+
+"""
 
 class Configuration(object):
     def __init__(self, j):
@@ -31,9 +40,10 @@ def runTest():
     # Loading MNIST dataset
     mnist_alternative_url = "https://github.com/amplab/datascience-sp14/raw/master/lab7/mldata/mnist-original.mat"
     mnist_path = "./mnist-original.mat"
-    response = urllib.urlopen(mnist_alternative_url)
+
 
     if not os.path.isfile(mnist_path):
+        response = urllib.urlopen(mnist_alternative_url)
         with open(mnist_path, "wb") as f:
             print "Downloading data"
             content = response.read()
@@ -55,7 +65,42 @@ def runTest():
 
     configuration = Configuration(config_data)
 
-    population = initialisation(Rsize=4, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+
+
+    reef = initialisation(Rsize=4, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    # Population is already evaluated in the initialisation function
+
+    # loop
+
+    pool = []
+
+    # 1 Asexual reproduction
+
+    asexual_new_individual = asexual_reproduction(reef, configuration)
+    pool = pool + [asexual_new_individual]
+
+    # 2 Sexual reproduction
+
+    sexual_new_individuals = sexual_reproduction(reef, configuration)
+    pool = pool + sexual_new_individuals
+
+    # 3 Larvae settlement
+
+    reef, settled = larvae_settlement(reef, pool)
+
+
+    # 4 Evaluation
+
+    # Todo: invalidate all fitness of individuals which have been operated
+    # Todo: the evaluate function must be modified in order to evaluate only new formed individuals
+
+
+    # 5 Depredation
+
+    reef = depredation(reef)
+
+    # stop criteria check
+
 
 
 
@@ -86,41 +131,45 @@ def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, k
     """
     # Creating population of Rsize*Rsize new random individuals
     # population = [[Individual(config, n_global_in, n_global_out)]*Rsize for _ in range(Rsize)]
-    population = [Individual(config, n_global_in, n_global_out) for _ in range(Rsize*Rsize)]
-    print "Reef created with " + str(len(population)) + " solutions"
-    print "Original size: " + str(len(population))
+    reef = [Individual(config, n_global_in, n_global_out) for _ in range(Rsize*Rsize)]
+    print "Reef created with " + str(len(reef)) + " solutions"
+    print "Original size: " + str(len(reef))
 
     # Eval population
 
-    eval_population(population, ke)
-    for ind in population:
+    eval_population(reef, ke)
+    for ind in reef:
         print str(ind.fitness)
 
     # Calculating fitness mean and std deviation
-    fitness_mean, fitness_std = fitness_mean_std(population)
+    fitness_mean, fitness_std = fitness_mean_std(reef)
 
     # Deleting corals according to formula
+    # It is not the same that the depredation one
     # new_population = [[ind if initial_deletion_check(ind.fitness, fitness_mean, fitness_std) else None for ind in line ] for line in population]
-    new_population = [ind if initial_deletion_check(ind.fitness["accuracy_validation"], fitness_mean, fitness_std) else None for ind in population]
+    new_reef = [
+        ind if initial_deletion_check(ind.fitness["accuracy_validation"], fitness_mean, fitness_std) else None for
+        ind in reef]
 
-    print "Population reduced to: " + str(len(filter(lambda w: w is not None, new_population))) + " solutions"
+    print "Population reduced to: " + str(len(filter(lambda w: w is not None, new_reef))) + " solutions"
 
-    for ind in filter(lambda w: w is not None, new_population):
+    for ind in filter(lambda w: w is not None, new_reef):
         print str(ind.fitness)
-    return new_population
+
+    return new_reef
 
 def initial_deletion_check(fitness, fitness_mean, fitness_std):
 
     return (fitness_mean - fitness_std) < fitness <= 1
 
 
-def fitness_mean_std(population):
+def fitness_mean_std(reef):
 
     # fitnesses_reef = np.array([[eval_keras(x, ke) if x is not None else None for x in line ] for line in population])
 
     # Todo: originally individuals will not be evaluated? : to check
     # Todo: create fitness in the individual
-    fitnesses_reef = np.array([ind.fitness["accuracy_validation"] for ind in population if ind is not None])  # None are removed
+    fitnesses_reef = np.array([ind.fitness["accuracy_validation"] for ind in reef if ind is not None])  # None are removed
 
     fitness_mean = fitnesses_reef.mean()
     fitness_std = fitnesses_reef.std()
@@ -129,33 +178,45 @@ def fitness_mean_std(population):
 
 # Asexual reproduction
 
-def asexual_reproduction():
+def asexual_reproduction(reef, config):
 
-    return None
+    selected_individual = asexual_selection(reef)
+    new_individual = mutation(selected_individual, config)
+    return new_individual
 
 # Asexual selection
-def asexual_selection(population, fa):
+def asexual_selection(reef):
     """
 
     :param population: set of chromosomes
-    :param fa: percentage of asexual reproduction (selection)
     :return: aLarvae: selected larvae
     """
-    sorted_population = sorted(population, key=lambda coral: coral.my_fitness if coral is not None else -1, reverse=True)
-    max_value = round(fa * len(filter(lambda x: x is not None, population)))
-    idx = random.randrange(0, max_value)
-    # TODO: What if there is nothing but holes in the population?
-    return copy.deepcopy(sorted_population[idx])
+
+    population = filter(lambda w: w is not None, reef)
+
+    fitness_mean, fitness_std = fitness_mean_std(population)
+    range_min = (fitness_mean + fitness_std)
+    range_max = 1
+    fragmentation = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max, population)
+
+
+    # sorted_population = sorted(population, key=lambda coral: coral.fitness if coral is not None else -1, reverse=True)
+    # max_value = round(fa * len(filter(lambda x: x is not None, population)))
+    idx = random.randrange(0, len(fragmentation))
+    # TODO: What if there is nothing but holes in the population? -> Is it that possible?
+
+    aLarvae = deepcopy(fragmentation[idx])
+    return aLarvae
 
 # Sexual reproduction
-def sexual_reproduction(population):
+def sexual_reproduction(reef, config):
     # population.sort(key=lambda x: x.fitness, reverse=True)
 
     new_population = []
 
     # A random fraction Fb of the individuals is selected uniformly
 
-    not_none_population = filter(lambda w: w is not None, population)
+    not_none_population = filter(lambda w: w is not None, reef)
 
     fitness_mean, fitness_std = fitness_mean_std(not_none_population)
 
@@ -168,10 +229,19 @@ def sexual_reproduction(population):
 
     # Population subset for INTERNAL sexual reproduction
     internal_individuals = filter(lambda ind: range_min >= ind.fitness["accuracy_validation"], not_none_population)
-
-
-
+    print "SIZE PAIRS: " + str(len(external_pairs))
     if len(external_pairs) % 2 == 1:
+        new_random_position = random.randrange(0, len(external_pairs))
+
+        # Todo check if this is correct
+        # sorted_population = sorted(external_pairs, key=lambda ind: ind.fitness, reverse=False)
+        # min_num = min(external_pairs, key=attrgetter('fitn'))
+
+
+        # moving worst individual
+        internal_individuals.append(external_pairs[new_random_position])
+        del external_pairs[new_random_position]  # Todo check if correct
+
         # MOVER DE EXTERNAL PAIRS A
     # if not even number, move to other set
 
@@ -183,9 +253,10 @@ def sexual_reproduction(population):
 
     for i in range(0, len(external_pairs), 2):
 
+        print str(len(external_pairs))
         ind1, ind2 = external_pairs[i], external_pairs[i+1]
 
-        new_individual = crossover(ind1, ind2)
+        new_individual = crossover(ind1, ind2, config)
         new_population.append(new_individual)
     ########################################################
 
@@ -195,32 +266,38 @@ def sexual_reproduction(population):
     # Internal
     ########################################################
     for ind in internal_individuals:
-        new_individual = mutation(ind)
+        new_individual = mutation(ind, config)
         new_population.append(new_individual)
 
     ########################################################
 
-
-
-
-
-
+    print "NEW POL" + str(new_population)
+    return new_population
 
 
 # Crossover
-def crossover(ind1, ind2):
-    return new_individual
+# Todo: set this parameter according to evodeep
+def crossover(ind1, ind2, config, indpb=0.2):
+
+    # Fix crossover to get 1 individual
+    new_individual1, new_individual2 = complete_crossover(ind1=ind1, ind2=ind2, indpb=indpb, config=config)
+
+    return new_individual1
 
 
 # Mutation
-def mutation(ind):
+# Todo: to set these parameters according to evodeep
+def mutation(ind, config, indpb=0.2, prob_add_remove_layer=0.2):
+
+    new_individual = complete_mutation(ind1=ind, indpb=indpb, prob_add_remove_layer=prob_add_remove_layer, config=config)
     return new_individual
 
 
 # Coral replacement
-def coral_replacement(population, fitness, nPobl, poolPopulation, poolFitness, Natt):
+def larvae_settlement(reef, population, max_attempts=2):
     """
 
+    :param max_attempts:
     :param population: set of chromosomes
     :param fitness: fitness of each individual
     :param nPobl: population size
@@ -231,10 +308,29 @@ def coral_replacement(population, fitness, nPobl, poolPopulation, poolFitness, N
     :return: newFitness: fitness of the new population
     """
 
-    return None
+    for ind in population:
+        attempts = 0
+        settled = 0
+
+        while attempts < max_attempts:
+
+            new_random_position = random.randrange(0, len(reef))
+
+            print "-" + str(reef[new_random_position])
+            print "+" + str(ind)
+            if reef[new_random_position] is None:
+                reef[new_random_position] = ind
+                settled += 1
+            elif reef[new_random_position].fitness["accuracy_validation"] < ind.fitness["accuracy_validation"]:
+                reef[new_random_position] = ind
+                settled += 1
+
+            attempts += 1
+
+    return reef, settled
 
 # Depredation
-def depredation(population, fitness1, Fd, pDep):
+def depredation(reef):
     """
 
     :param population: population to be depredated
@@ -245,269 +341,25 @@ def depredation(population, fitness1, Fd, pDep):
     :return: newFitness1: updated fitness
     """
 
+    # Calculating fitness mean and std deviation
+    fitness_mean, fitness_std = fitness_mean_std(reef)
 
-    return None
+    range_min = 0
+    range_max = (fitness_mean - (2*fitness_std))
 
+    # Deleting corals according to formula
+    reef = [None if ind is not None and range_min <= ind.fitness["accuracy_validation"] <= range_max else ind for ind in reef]
 
+    return reef
 
 
+def eval_population(reef, ke):
 
-
-#################################################
-#################################################
-######   INDIVIDUALS AND FITNESS        #########
-#################################################
-#################################################
-
-
-
-
-
-class GlobalAttributes:
-    """
-    @DynamicAttrs
-    """
-
-    def __init__(self, config):
-        for global_parameter_name in config.global_parameters.keys():
-            setattr(self, global_parameter_name, generate_random_global_parameter(global_parameter_name, config))
-
-#################################################
-# Individual class, from EvoDeep
-#################################################
-class Individual(object):
-    def __init__(self, config, n_global_in, n_global_out):
-
-        n_layers_start = 5
-        num_min = 3
-        self.configuration = config
-
-        self.global_attributes = GlobalAttributes(self.configuration)
-
-        self.net_struct = []
-
-        self.fitness=None
-
-        state_machine = fsm(alphabet=set(config.fsm['alphabet']),
-                            states=set(config.fsm['states']),
-                            initial="inicial",
-                            finals={"Dense"},
-                            map=config.fsm['map'])
-
-        candidates = list(itertools.takewhile(lambda c: len(c) <= n_layers_start,
-                                              itertools.dropwhile(lambda l: len(l) < num_min,
-                                                                  state_machine.strings())))
-
-        first_layers = list(set([b[0] for b in candidates]))
-        candidates = [random.choice([z for z in candidates if z[0] == first_layers[l]]) for l in
-                      range(len(first_layers))]
-
-        sizes = list(set(map(len, candidates)))
-        random_size = random.choice(sizes)
-        candidates = filter(lambda c: len(c) == random_size, candidates)
-
-        candidate = random.choice(candidates)
-        candidate = map(lambda lt: Layer([lt], config), candidate)
-        self.net_struct = candidate
-        self.net_struct[0].parameters['input_shape'] = (n_global_in,)
-        self.net_struct[-1].parameters['output_dim'] = n_global_out
-        self.global_attributes.number_layers = len(self.net_struct)
-
-    def toString(self):
-
-        output = ""
-        global_attributes_dictionary = self.global_attributes.__dict__
-        for item in sorted(global_attributes_dictionary.keys()):
-            output += "Global attribute " + str(item) + ": " + str(global_attributes_dictionary[item]) + "\n"
-
-        output += "Net structure: \n"
-
-        for index, layer in enumerate(self.net_struct):
-            output += "\t Layer " + str(index) + "\n"
-
-            output += "\t\t Layer type: " + layer.type + "\n"
-
-            for p in sorted(layer.parameters.keys()):
-                output += "\t\t " + p + ": " + str(layer.parameters[p]) + "\n"
-
-        return output
-
-    def __repr__(self):
-        return "I: " + ",".join(map(str, self.net_struct))
-#################################################
-
-#################################################
-# Layer class
-#################################################
-class Layer:
-    """
-    Class representing each layer of the Keras workflow
-    """
-
-    def __init__(self, possible_layers, config, layer_position=None, n_input_outputs=None):
-        """
-        Fixed arguments of each layers (those not represented in the individual) such as in or out,
-        are direct attributes
-        Parameters are under the self.parameters
-
-        :param possible_layers: name of possible next layers
-        :param config: configuration object
-        :param layer_position: position of the layer to be added
-
-        """
-
-        self.type = random.choice(possible_layers)
-        self.parameters = {}
-
-        for param in config.layers[self.type].keys():
-
-            if param != "parameters":
-                setattr(self, param, config.layers[self.type][param])
-            else:
-                for p in config.layers[self.type][param]:
-                    self.parameters[p] = generate_random_layer_parameter(p, self.type, config)
-
-        # Deal with number of neurons in first and last layer
-        if layer_position == 'first':
-            # self.type = 'Dense'
-            self.parameters['input_shape'] = (n_input_outputs,)
-        if layer_position == 'last':
-            # Last layer is forced to be dense
-            self.type = 'Dense'
-            self.parameters = dict()
-            for param in config.layers[self.type].keys():
-
-                if param != "parameters":
-                    setattr(self, param, config.layers[self.type][param])
-                else:
-                    for p in config.layers[self.type][param]:
-                        self.parameters[p] = generate_random_layer_parameter(p, self.type, config)
-            self.parameters['output_dim'] = n_input_outputs
-
-    def __repr__(self):
-        return "[" + self.type[:2] + "(" + "|".join(
-            map(lambda (k, v): k[:4] + ":" + str(v), self.parameters.items())) + ")]"
-#################################################
-
-def dummy_eval(individual):
-
-    evaluation = {
-        "accuracy_validation": random.random(),
-        "number_layers": random.randrange(2, 10),
-        "accuracy_training": random.random(),
-        "accuracy_test": random.random()
-    }
-    return evaluation
-
-
-def eval_keras(individual, ke):
-    sys.stdout.write(".")
-    sys.stdout.flush()
-
-    my_ke = deepcopy(ke)
-
-    metrics_names, scores_training, scores_validation, scores_test, model = my_ke.execute(individual)
-    accuracy_training = scores_training[metrics_names.index("acc")]
-    accuracy_validation = scores_validation[metrics_names.index("acc")]
-    accuracy_test = scores_test[metrics_names.index("acc")]
-
-    number_layers = individual.global_attributes.number_layers
-
-    evaluation = {
-        "accuracy_validation": accuracy_validation,
-        "number_layers": number_layers,
-        "accuracy_training": accuracy_training,
-        "accuracy_test": accuracy_test
-    }
-    return evaluation
-
-
-def create_random_valid_layer(config, last_layer_output_type, n_input_outputs=None, layer_position=None):
-    """
-    Generates a new valid randomly generated layer coherent with the previous existent layer
-    :param n_input_outputs:
-    :param config: configuration object
-    :param layer_position: position of the layer to be added
-    :param last_layer_output_type: output type of the previous existent layer
-    :return:
-    """
-    possible_layers = []
-
-    for layer_name, layer_config in config.layers.items():
-        if layer_config['in'] == last_layer_output_type:
-            possible_layers.append(layer_name)
-    layer = Layer(possible_layers, config, layer_position, n_input_outputs)
-
-    return layer
-
-def parser_parameter_types(parameter_config, parameter):
-    if parameter == "categorical":
-        return parameter_config["values"][random.randrange(0, len(parameter_config["values"]))]
-
-    elif parameter == "range":
-        return random.randrange(*parameter_config["values"])
-
-    elif parameter == "rangeDouble":
-        return round(random.uniform(*parameter_config["values"]), 1)
-
-    elif parameter == "matrixRatio":
-        # return gen_matrix_ratio_tuple(parameter_config["aspect_ratio"], n_neurons_prev_layer)
-        return parameter_config["aspect_ratio"]
-
-    elif parameter == "categoricalNumeric":
-        val = parameter_config["values"][random.randrange(0, len(parameter_config["values"]))]
-
-        if val:
-            return val, val
-        else:
-            return None
-
-    elif parameter == "2Drange":
-        return [random.randrange(*parameter_config["values"]) for _ in range(parameter_config["size"])]
-
-    elif parameter == "boolean":
-        return bool(random.getrandbits(1))
-
-    else:
-        print "PARAMETER " + parameter + " NOT DEFINED"
-
-def generate_random_global_parameter(parameter_name, configuration):
-    """
-    This method generates a new random value based on
-    :param parameter_name: the parameter for which a new value is given
-    -parameter_name- can take. This param contains the whole configuration dictionary
-    :param configuration:
-    :return:
-    """
-    parameter_type = configuration.global_parameters[parameter_name]["type"]
-    parameter_config = configuration.global_parameters[parameter_name]
-
-    return parser_parameter_types(parameter_config, parameter_type)
-
-def generate_random_layer_parameter(parameter_name, layer_type, configuration):
-    """
-    This method generates a new random value based on
-    :param configuration:
-    :param layer_type:
-    :param parameter_name: the parameter for which a new value is given
-    -parameter_name- can take. This param contains the whole configuration dictionary
-    :return:
-    """
-    if "parameters" not in configuration.layers[layer_type]:
-        return None
-
-    parameter_type = configuration.layers[layer_type]["parameters"][parameter_name]["type"]
-    parameter_config = configuration.layers[layer_type]["parameters"][parameter_name]
-
-    return parser_parameter_types(parameter_config, parameter_type)
-
-
-def eval_population(population, ke):
-
-    for ind in population:
+    for ind in reef:
         if ind is not None:
             # ind.fitness = eval_keras(ind, ke)
             ind.fitness = dummy_eval(ind)
+    return reef
 
 
 runTest()
