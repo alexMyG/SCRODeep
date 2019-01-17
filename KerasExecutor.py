@@ -54,14 +54,15 @@ class KerasExecutor:
         for index, layer in enumerate(individual.net_struct):
 
             if layer.type == "Dense":
+                print str(layer.parameters)
                 model.add(Dense(**layer.parameters))
 
             elif layer.type == "Dropout":
                 model.add(Dropout(**layer.parameters))
 
             elif layer.type == "Convolution2D":
-                layer.parameters['nb_row'] = min(layer.parameters['nb_row'], model.output_shape[1])
-                layer.parameters['nb_col'] = min(layer.parameters['nb_col'], model.output_shape[2])
+                layer.parameters['kernel_size'] = min(layer.parameters['kernel_size'], model.output_shape[1])
+                #layer.parameters['nb_col'] = min(layer.parameters['nb_col'], model.output_shape[2])
                 model.add(Convolution2D(**layer.parameters))
 
             elif layer.type == "MaxPooling2D":
@@ -105,7 +106,7 @@ class KerasExecutor:
                                     mode='max')]
 
         # Running model
-        hist = model.fit(train, target_train, nb_epoch=individual.global_attributes.nb_epoch,
+        hist = model.fit(train, target_train, epochs=individual.global_attributes.nb_epoch,
                          batch_size=individual.global_attributes.batch_size,
                          verbose=0, callbacks=callbacks_array, validation_data=(validation, target_validation)).__dict__
 

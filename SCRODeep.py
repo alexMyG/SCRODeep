@@ -2,7 +2,8 @@ import numpy as np
 import json
 import urllib
 import os.path
-
+import os
+os.environ['KERAS_BACKEND']='tensorflow'
 from random import shuffle
 from KerasExecutor import KerasExecutor
 from operator import attrgetter
@@ -61,13 +62,12 @@ def runTest():
     print "Starting keras executor"
     ke = KerasExecutor(dataset, test_size, metrics, early_stopping_patience, loss)
 
+
     config_data = open('parametersGenetic.json')
 
     configuration = Configuration(config_data)
 
-
-
-    reef = initialisation(Rsize=4, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=5, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     # loop
@@ -91,18 +91,14 @@ def runTest():
 
     # 4 Evaluation
 
-    # Todo: invalidate all fitness of individuals which have been operated
-    # Todo: the evaluate function must be modified in order to evaluate only new formed individuals
-
+    # TODO: check if population is updated
+    eval_population(reef, ke)
 
     # 5 Depredation
 
     reef = depredation(reef)
 
     # stop criteria check
-
-
-
 
 
 #################################################
@@ -182,6 +178,7 @@ def asexual_reproduction(reef, config):
 
     selected_individual = asexual_selection(reef)
     new_individual = mutation(selected_individual, config)
+    new_individual.fitness = None
     return new_individual
 
 # Asexual selection
@@ -257,6 +254,7 @@ def sexual_reproduction(reef, config):
         ind1, ind2 = external_pairs[i], external_pairs[i+1]
 
         new_individual = crossover(ind1, ind2, config)
+        new_individual.fitness = None
         new_population.append(new_individual)
     ########################################################
 
@@ -267,6 +265,7 @@ def sexual_reproduction(reef, config):
     ########################################################
     for ind in internal_individuals:
         new_individual = mutation(ind, config)
+        new_individual.fitness = None
         new_population.append(new_individual)
 
     ########################################################
@@ -356,10 +355,12 @@ def depredation(reef):
 def eval_population(reef, ke):
 
     for ind in reef:
-        if ind is not None:
-            # ind.fitness = eval_keras(ind, ke)
-            ind.fitness = dummy_eval(ind)
+        if ind is not None and ind.fitness is None:
+            # TODO check if correct
+            # If the fitness is not none, the individual did not change, so it keeps the same fitness
+            ind.fitness = eval_keras(ind, ke)
+            # ind.fitness = dummy_eval(ind)
     return reef
 
 
-runTest()
+#runTest()

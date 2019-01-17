@@ -169,7 +169,7 @@ def internal_mutation_fsm(ind, indpb, new_layer_pb, config):
         layer_type = ind.net_struct[pos_layer].type
         for parameter in parameters_dict.keys():
             # TODO REVISAR
-            if random.random() < indpb and parameter != 'input_shape' and parameter != 'output_dim':
+            if random.random() < indpb and parameter != 'input_shape' and parameter != 'units':
                 parameters_dict[parameter] = generate_random_layer_parameter(parameter, layer_type, config)
 
     if random.random() < new_layer_pb:

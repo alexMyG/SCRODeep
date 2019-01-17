@@ -62,7 +62,7 @@ class Individual(object):
         candidate = map(lambda lt: Layer([lt], config), candidate)
         self.net_struct = candidate
         self.net_struct[0].parameters['input_shape'] = (n_global_in,)
-        self.net_struct[-1].parameters['output_dim'] = n_global_out
+        self.net_struct[-1].parameters['units'] = n_global_out
         self.global_attributes.number_layers = len(self.net_struct)
 
     def toString(self):
@@ -134,7 +134,7 @@ class Layer:
                 else:
                     for p in config.layers[self.type][param]:
                         self.parameters[p] = generate_random_layer_parameter(p, self.type, config)
-            self.parameters['output_dim'] = n_input_outputs
+            self.parameters['units'] = n_input_outputs
 
     def __repr__(self):
         return "[" + self.type[:2] + "(" + "|".join(
