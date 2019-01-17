@@ -67,7 +67,7 @@ def runTest():
 
     configuration = Configuration(config_data)
 
-    reef = initialisation(Rsize=5, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=3, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     # loop
@@ -86,13 +86,15 @@ def runTest():
 
     # 3 Larvae settlement
 
+    eval_population(pool, ke)
+
     reef, settled = larvae_settlement(reef, pool)
 
 
     # 4 Evaluation
 
     # TODO: check if population is updated
-    eval_population(reef, ke)
+
 
     # 5 Depredation
 
@@ -226,7 +228,7 @@ def sexual_reproduction(reef, config):
 
     # Population subset for INTERNAL sexual reproduction
     internal_individuals = filter(lambda ind: range_min >= ind.fitness["accuracy_validation"], not_none_population)
-    print "SIZE PAIRS: " + str(len(external_pairs))
+
     if len(external_pairs) % 2 == 1:
         new_random_position = random.randrange(0, len(external_pairs))
 
@@ -250,7 +252,6 @@ def sexual_reproduction(reef, config):
 
     for i in range(0, len(external_pairs), 2):
 
-        print str(len(external_pairs))
         ind1, ind2 = external_pairs[i], external_pairs[i+1]
 
         new_individual = crossover(ind1, ind2, config)
