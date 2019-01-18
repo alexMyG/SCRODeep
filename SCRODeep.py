@@ -8,6 +8,9 @@ from random import shuffle
 from KerasExecutor import KerasExecutor
 from operator import attrgetter
 
+from termcolor import colored, cprint
+
+
 from scipy.io import loadmat
 
 from OperatorsDeep import complete_crossover, complete_mutation
@@ -116,7 +119,7 @@ def runTest():
 
         history.append([fitness_mean_std(reef), count_evaluations, individuals_depredated, deepcopy(reef)])
 
-        print str(fitness_mean_std(reef)) + "," + str(count_evaluations) + "," + str(individuals_depredated)
+        print colored(str(fitness_mean_std(reef)) + "," + str(count_evaluations) + "," + str(individuals_depredated), 'yellow',  attrs=['blink'])
 
 
     # stop criteria check
@@ -395,7 +398,7 @@ def eval_population(reef, ke):
             # TODO check if correct
             # If the fitness is not none, the individual did not change, so it keeps the same fitness
             ind.fitness = eval_keras(ind, ke)
-            # ind.fitness = dummy_eval(ind)
+            #ind.fitness = dummy_eval(ind)
             count += 1
 
     # print "New individuals evaluated: " + str(count)
