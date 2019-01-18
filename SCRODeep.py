@@ -13,6 +13,9 @@ from scipy.io import loadmat
 from OperatorsDeep import complete_crossover, complete_mutation
 
 from Individual import *
+
+from copy import deepcopy
+
 metrics = ["accuracy"]
 early_stopping_patience = 100
 loss = "categorical_crossentropy"
@@ -67,38 +70,54 @@ def runTest():
 
     configuration = Configuration(config_data)
 
-    reef = initialisation(Rsize=3, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=5, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     # loop
 
-    pool = []
-
-    # 1 Asexual reproduction
-
-    asexual_new_individual = asexual_reproduction(reef, configuration)
-    pool = pool + [asexual_new_individual]
-
-    # 2 Sexual reproduction
-
-    sexual_new_individuals = sexual_reproduction(reef, configuration)
-    pool = pool + sexual_new_individuals
-
-    # 3 Larvae settlement
-
-    eval_population(pool, ke)
-
-    reef, settled = larvae_settlement(reef, pool)
 
 
-    # 4 Evaluation
+    stop_criteria = False
 
-    # TODO: check if population is updated
+    max_generations = 10
 
+    history = []
 
-    # 5 Depredation
+    for i in range(max_generations):
 
-    reef = depredation(reef)
+        pool = []
+
+        if stop_criteria:
+            break
+
+        # 1 Asexual reproduction
+
+        asexual_new_individual = asexual_reproduction(reef, configuration)
+        if asexual_new_individual is not None:
+            pool = pool + [asexual_new_individual]
+
+        # 2 Sexual reproduction
+
+        sexual_new_individuals = sexual_reproduction(reef, configuration)
+        pool = pool + sexual_new_individuals
+
+        # 3 Larvae settlement
+
+        pool, count_evaluations = eval_population(pool, ke)
+
+        reef, settled = larvae_settlement(reef, pool)
+
+        # 5 Depredation
+
+        # Todo remove returns of same object
+        reef, individuals_depredated = depredation(reef)
+
+        # History
+
+        history.append([fitness_mean_std(reef), count_evaluations, individuals_depredated, deepcopy(reef)])
+
+        print str(fitness_mean_std(reef)) + "," + str(count_evaluations) + "," + str(individuals_depredated)
+
 
     # stop criteria check
 
@@ -135,12 +154,12 @@ def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, k
 
     # Eval population
 
-    eval_population(reef, ke)
-    for ind in reef:
-        print str(ind.fitness)
+    reef, count_evaluations = eval_population(reef, ke)
+    #for ind in reef:
+    #    print str(ind.fitness)
 
     # Calculating fitness mean and std deviation
-    fitness_mean, fitness_std = fitness_mean_std(reef)
+    fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(reef)
 
     # Deleting corals according to formula
     # It is not the same that the depredation one
@@ -151,8 +170,8 @@ def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, k
 
     print "Population reduced to: " + str(len(filter(lambda w: w is not None, new_reef))) + " solutions"
 
-    for ind in filter(lambda w: w is not None, new_reef):
-        print str(ind.fitness)
+    #for ind in filter(lambda w: w is not None, new_reef):
+    #    print str(ind.fitness)
 
     return new_reef
 
@@ -171,16 +190,20 @@ def fitness_mean_std(reef):
 
     fitness_mean = fitnesses_reef.mean()
     fitness_std = fitnesses_reef.std()
+    fitness_max = 0 # fitnesses_reef.max()
+    fitness_min = 0 # fitnesses_reef.min()
 
-    return fitness_mean, fitness_std
+    return fitness_mean, fitness_std, fitness_max, fitness_min
 
 # Asexual reproduction
 
 def asexual_reproduction(reef, config):
 
     selected_individual = asexual_selection(reef)
-    new_individual = mutation(selected_individual, config)
-    new_individual.fitness = None
+    new_individual = None
+    if selected_individual is not None:
+        new_individual = mutation(selected_individual, config)
+        new_individual.fitness = None
     return new_individual
 
 # Asexual selection
@@ -193,18 +216,23 @@ def asexual_selection(reef):
 
     population = filter(lambda w: w is not None, reef)
 
-    fitness_mean, fitness_std = fitness_mean_std(population)
+    fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(population)
     range_min = (fitness_mean + fitness_std)
     range_max = 1
     fragmentation = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max, population)
 
+    if len(fragmentation) > 0:
 
-    # sorted_population = sorted(population, key=lambda coral: coral.fitness if coral is not None else -1, reverse=True)
-    # max_value = round(fa * len(filter(lambda x: x is not None, population)))
-    idx = random.randrange(0, len(fragmentation))
-    # TODO: What if there is nothing but holes in the population? -> Is it that possible?
+        # sorted_population = sorted(population, key=lambda coral: coral.fitness if coral is not None else -1, reverse=True)
+        # max_value = round(fa * len(filter(lambda x: x is not None, population)))
+        idx = random.randrange(0, len(fragmentation))
+        # TODO: What if there is nothing but holes in the population? -> Is it that possible?
 
-    aLarvae = deepcopy(fragmentation[idx])
+        aLarvae = deepcopy(fragmentation[idx])
+
+    else:
+        aLarvae = None
+
     return aLarvae
 
 # Sexual reproduction
@@ -217,7 +245,7 @@ def sexual_reproduction(reef, config):
 
     not_none_population = filter(lambda w: w is not None, reef)
 
-    fitness_mean, fitness_std = fitness_mean_std(not_none_population)
+    fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(not_none_population)
 
     range_min = (fitness_mean - fitness_std)
     range_max = 1
@@ -271,7 +299,7 @@ def sexual_reproduction(reef, config):
 
     ########################################################
 
-    print "NEW POL" + str(new_population)
+    #print "NEW POL" + str(new_population)
     return new_population
 
 
@@ -309,15 +337,16 @@ def larvae_settlement(reef, population, max_attempts=2):
     """
 
     for ind in population:
+
+        #print "++" + str(ind)
         attempts = 0
         settled = 0
 
         while attempts < max_attempts:
 
             new_random_position = random.randrange(0, len(reef))
-
-            print "-" + str(reef[new_random_position])
-            print "+" + str(ind)
+            #print str(new_random_position)
+            #print str(ind)
             if reef[new_random_position] is None:
                 reef[new_random_position] = ind
                 settled += 1
@@ -342,26 +371,36 @@ def depredation(reef):
     """
 
     # Calculating fitness mean and std deviation
-    fitness_mean, fitness_std = fitness_mean_std(reef)
+    fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(reef)
 
     range_min = 0
     range_max = (fitness_mean - (2*fitness_std))
 
+    not_none_population1 = len(filter(lambda w: w is not None, reef))
+
     # Deleting corals according to formula
     reef = [None if ind is not None and range_min <= ind.fitness["accuracy_validation"] <= range_max else ind for ind in reef]
 
-    return reef
+    not_none_population2 = len(filter(lambda w: w is not None, reef))
+
+    # print "Individuals depredated: " + str(not_none_population1 - not_none_population2)
+
+    return reef, not_none_population1 - not_none_population2
 
 
 def eval_population(reef, ke):
-
+    count = 0
     for ind in reef:
         if ind is not None and ind.fitness is None:
             # TODO check if correct
             # If the fitness is not none, the individual did not change, so it keeps the same fitness
-            ind.fitness = eval_keras(ind, ke)
+            # ind.fitness = eval_keras(ind, ke)
+            ind.fitness = dummy_eval(ind)
+            count += 1
+
+    # print "New individuals evaluated: " + str(count)
             # ind.fitness = dummy_eval(ind)
-    return reef
+    return reef, count
 
 
-#runTest()
+runTest()
