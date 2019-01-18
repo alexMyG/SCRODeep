@@ -14,6 +14,8 @@ from keras.layers import Dropout, Convolution2D
 from keras import callbacks
 # from keras.utils import np_utils
 from keras.utils import to_categorical
+from termcolor import colored, cprint
+
 
 class KerasExecutor:
     # The number of neurons in the first and last layer included in network-structure is ommited.
@@ -43,18 +45,23 @@ class KerasExecutor:
 
     def execute(self, individual):
 
+
+
         train, test, target_train, target_test = train_test_split(self.x, self.y_hot_encoding, test_size=self.test_size,
                                                                   random_state=int(time.time()))
+
+        # print colored("Dataset format: train: " + str(len(train)) + " - test: " + str(len(test)) + " - target_train: " + str(len(target_train)) + " - target_test: " + str(len(target_test)), "yellow")
 
         model = Sequential()
 
         list_layers_names = [l.type for l in individual.net_struct]
         print ",".join(list_layers_names)
+        #print individual.toString()
 
         for index, layer in enumerate(individual.net_struct):
 
             if layer.type == "Dense":
-                print str(layer.parameters)
+                # print str(layer.parameters)
                 model.add(Dense(**layer.parameters))
 
             elif layer.type == "Dropout":
@@ -110,9 +117,14 @@ class KerasExecutor:
                          batch_size=individual.global_attributes.batch_size,
                          verbose=0, callbacks=callbacks_array, validation_data=(validation, target_validation)).__dict__
 
-
         scores_training = model.evaluate(train, target_train, verbose=0)
         scores_validation = model.evaluate(validation, target_validation, verbose=0)
         scores_test = model.evaluate(test, target_test, verbose=0)
+
+        accuracy_training = scores_training[model.metrics_names.index("acc")]
+        accuracy_validation = scores_validation[model.metrics_names.index("acc")]
+        accuracy_test = scores_test[model.metrics_names.index("acc")]
+        print colored("Individual evaluation: -Acc training: " + str(accuracy_training) + " -Acc val: " + str(accuracy_validation) + " -Acc test: " + str(accuracy_test), "blue")
+
 
         return model.metrics_names, scores_training, scores_validation, scores_test, model

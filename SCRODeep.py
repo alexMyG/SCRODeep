@@ -3,51 +3,52 @@ import json
 import urllib
 import os.path
 import os
-os.environ['KERAS_BACKEND']='tensorflow'
-from random import shuffle
-from KerasExecutor import KerasExecutor
-from operator import attrgetter
-
-from termcolor import colored, cprint
-
-
-from scipy.io import loadmat
-
-from OperatorsDeep import complete_crossover, complete_mutation
+import time
 
 from Individual import *
-
+from random import shuffle
 from copy import deepcopy
+from scipy.io import loadmat
+from keras import backend as K
+from termcolor import colored
+from KerasExecutor import KerasExecutor
+from OperatorsDeep import complete_crossover, complete_mutation
 
-metrics = ["accuracy"]
-early_stopping_patience = 100
-loss = "categorical_crossentropy"
+K.set_image_dim_ordering('th')
+
+METRICS = ["accuracy"]
+EARLY_STOPPING_PATIENCE_KERAS = 10
+EARLY_STOPPING_PATIENCE_SCRO = 4  # if accuracy_validation does not improve in the last 4 generations, the search stops
+LOSS = "categorical_crossentropy"
+MAX_GENERATIONS_SCRO = 30
+TEST_SIZE = 0.5
+
+
 
 
 """
 IMPORTANT NOTE
 
 REEF IS A LIST WITH INDIVIDUALS AND NONE POSITIONS.
-POPULATION IS A SET OF INDIVIDUALS WHERE THE ORDER IN THE LIST DOES NOT MATTER WHICH CAN CONTAIN NONE VALUES
+POPULATION IS A SET OF INDIVIDUALS WHERE THE ORDER IN THE LIST DOES NOT MATTER AND WHICH CONTAIN NONE VALUES
 
 """
+
 
 class Configuration(object):
     def __init__(self, j):
         self.__dict__ = json.load(j)
 
 
-
-def runSCRO(numIt, nPobl, numSeg, pCross, pMut, seed, sizeChromosome, polyDegree, percentage_hybridation):
-
-    return None
-
-def runTest():
+def runSCRO():
+    """
+    RUNS THE SCRO ALGORITHM FOR DEEP LEARNING ARCHITECTURES OPTIMISATION
+    :return:
+    """
 
     # Loading MNIST dataset
     mnist_alternative_url = "https://github.com/amplab/datascience-sp14/raw/master/lab7/mldata/mnist-original.mat"
     mnist_path = "./mnist-original.mat"
-
 
     if not os.path.isfile(mnist_path):
         response = urllib.urlopen(mnist_alternative_url)
@@ -63,71 +64,95 @@ def runTest():
         "DESCR": "mldata.org dataset: mnist-original",
     }
 
-    test_size = 0.2
-
     print "Starting keras executor"
-    ke = KerasExecutor(dataset, test_size, metrics, early_stopping_patience, loss)
-
+    ke = KerasExecutor(dataset, TEST_SIZE, METRICS, EARLY_STOPPING_PATIENCE_KERAS, LOSS)
 
     config_data = open('parametersGenetic.json')
-
     configuration = Configuration(config_data)
 
-    reef = initialisation(Rsize=5, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    ##############################
+    # Initialisation
+    ##############################
+
+    reef = initialisation(Rsize=4, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
-
-    # loop
-
-
-
-    stop_criteria = False
-
-    max_generations = 10
 
     history = []
 
-    for i in range(max_generations):
+    max_fitness_ever = 0.0
+    generations_with_no_improvement = 0
 
+    output_file = open("EXECUTION_" + str(time.time()) + ".csv", "w")
+    output_file.write("fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated,"
+                      " time_generation, reef\n")
+
+    ##############################
+    # Loop
+    ##############################
+    for i in range(MAX_GENERATIONS_SCRO):
+
+        start_time = time.time()
+
+        print colored("GENERATION: " + str(i), "red")
         pool = []
 
-        if stop_criteria:
-            break
-
         # 1 Asexual reproduction
-
         asexual_new_individual = asexual_reproduction(reef, configuration)
         if asexual_new_individual is not None:
             pool = pool + [asexual_new_individual]
 
         # 2 Sexual reproduction
-
         sexual_new_individuals = sexual_reproduction(reef, configuration)
         pool = pool + sexual_new_individuals
 
         # 3 Larvae settlement
-
         pool, count_evaluations = eval_population(pool, ke)
-
         reef, settled = larvae_settlement(reef, pool)
 
-        # 5 Depredation
-
-        # Todo remove returns of same object
+        # 4  Depredation
+        # Todo remove returns same object
         reef, individuals_depredated = depredation(reef)
 
         # History
 
-        history.append([fitness_mean_std(reef), count_evaluations, individuals_depredated, deepcopy(reef)])
+        fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(reef)
 
-        print colored(str(fitness_mean_std(reef)) + "," + str(count_evaluations) + "," + str(individuals_depredated), 'yellow',  attrs=['blink'])
+        if fitness_max > max_fitness_ever:
+            max_fitness_ever = fitness_max
+            generations_with_no_improvement = 0
+        else:
+            generations_with_no_improvement += 1
+
+        finish_time = time.time()
+
+        time_generation = finish_time-start_time
+
+        history.append([fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated,
+                        time_generation, deepcopy(reef)])
+
+        output_file.write(str(fitness_mean) + "," +
+                          str(fitness_max) + "," +
+                          str(fitness_std) + "," +
+                          str(fitness_min) + "," +
+                          str(count_evaluations) + "," +
+                          str(individuals_depredated) + "," +
+                          str(time_generation) + "," +
+                          str(reef) + "\n")
 
 
-    # stop criteria check
+        print colored(
+            str(fitness_mean) + "," + str(fitness_std) + "," + str(fitness_max) + "," + str(fitness_min) + "," + str(
+                count_evaluations) + "," + str(individuals_depredated) + "," + str(time_generation), 'yellow')
 
+        if generations_with_no_improvement >= MAX_GENERATIONS_SCRO:
+            print colored("Stop criterion reached! " + str(generations_with_no_improvement) + "generations with no "
+                                                                                              "improvement!", "red")
+            break
 
+    output_file.close()
 #################################################
 #################################################
-######              SCRO                #########
+#                   SCRO                        #
 #################################################
 #################################################
 
@@ -193,8 +218,8 @@ def fitness_mean_std(reef):
 
     fitness_mean = fitnesses_reef.mean()
     fitness_std = fitnesses_reef.std()
-    fitness_max = 0 # fitnesses_reef.max()
-    fitness_min = 0 # fitnesses_reef.min()
+    fitness_max = fitnesses_reef.max()
+    fitness_min = fitnesses_reef.min()
 
     return fitness_mean, fitness_std, fitness_max, fitness_min
 
@@ -290,8 +315,6 @@ def sexual_reproduction(reef, config):
         new_population.append(new_individual)
     ########################################################
 
-
-
     ########################################################
     # Internal
     ########################################################
@@ -339,11 +362,13 @@ def larvae_settlement(reef, population, max_attempts=2):
     :return: newFitness: fitness of the new population
     """
 
+    settled = 0
+
     for ind in population:
 
         #print "++" + str(ind)
         attempts = 0
-        settled = 0
+
 
         while attempts < max_attempts:
 
@@ -397,8 +422,8 @@ def eval_population(reef, ke):
         if ind is not None and ind.fitness is None:
             # TODO check if correct
             # If the fitness is not none, the individual did not change, so it keeps the same fitness
-            ind.fitness = eval_keras(ind, ke)
-            #ind.fitness = dummy_eval(ind)
+            # ind.fitness = eval_keras(ind, ke)
+            ind.fitness = dummy_eval(ind)
             count += 1
 
     # print "New individuals evaluated: " + str(count)
@@ -406,4 +431,4 @@ def eval_population(reef, ke):
     return reef, count
 
 
-runTest()
+runSCRO()
