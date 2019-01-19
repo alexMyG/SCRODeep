@@ -74,7 +74,7 @@ def runSCRO():
     # Initialisation
     ##############################
 
-    reef = initialisation(Rsize=4, rate_free_corals=0, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=4, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     history = []
@@ -95,6 +95,11 @@ def runSCRO():
 
         print colored("GENERATION: " + str(i), "red")
         pool = []
+
+        if len(filter(lambda w: w is not None, reef)) == 0:
+            output_file.write("ALL REEF IS NONE!")
+            print colored("ALL REEF IS NONE!, BREAKING EVOLUTION!", "red")
+            break
 
         # 1 Asexual reproduction
         asexual_new_individual = asexual_reproduction(reef, configuration)
@@ -139,7 +144,6 @@ def runSCRO():
                           str(time_generation) + "," +
                           str(reef) + "\n")
 
-
         print colored(
             str(fitness_mean) + "," + str(fitness_std) + "," + str(fitness_max) + "," + str(fitness_min) + "," + str(
                 count_evaluations) + "," + str(individuals_depredated) + "," + str(time_generation), 'yellow')
@@ -161,7 +165,7 @@ def runSCRO():
 #  OPERATORS
 
 # TODO: check: reef is a list.
-def initialisation(Rsize, rate_free_corals, config, n_global_in, n_global_out, ke):
+def initialisation(Rsize, config, n_global_in, n_global_out, ke):
     """
     Initialisation function. It creates the first population with a reef or Rsize*Rsize.
     At first all positions are filled with random individuals.
@@ -212,8 +216,6 @@ def fitness_mean_std(reef):
 
     # fitnesses_reef = np.array([[eval_keras(x, ke) if x is not None else None for x in line ] for line in population])
 
-    # Todo: originally individuals will not be evaluated? : to check
-    # Todo: create fitness in the individual
 
     fitness_mean = 0.0
     fitness_std = 0.0
@@ -339,7 +341,7 @@ def sexual_reproduction(reef, config):
 
 # Crossover
 # Todo: set this parameter according to evodeep
-def crossover(ind1, ind2, config, indpb=0.2):
+def crossover(ind1, ind2, config, indpb=0.5):
 
     # Fix crossover to get 1 individual
     new_individual1, new_individual2 = complete_crossover(ind1=ind1, ind2=ind2, indpb=indpb, config=config)
@@ -349,7 +351,7 @@ def crossover(ind1, ind2, config, indpb=0.2):
 
 # Mutation
 # Todo: to set these parameters according to evodeep
-def mutation(ind, config, indpb=0.2, prob_add_remove_layer=0.2):
+def mutation(ind, config, indpb=0.5, prob_add_remove_layer=0.5):
 
     new_individual = complete_mutation(ind1=ind, indpb=indpb, prob_add_remove_layer=prob_add_remove_layer, config=config)
     return new_individual

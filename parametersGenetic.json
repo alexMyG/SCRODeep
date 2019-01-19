@@ -114,7 +114,7 @@
           "type" : "range"
         },
         "number_layers": {
-          "values" : [3, 20, 1],
+          "values" : [3, 12, 1],
           "type" : "range"
         }
   },
