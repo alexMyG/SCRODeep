@@ -214,12 +214,20 @@ def fitness_mean_std(reef):
 
     # Todo: originally individuals will not be evaluated? : to check
     # Todo: create fitness in the individual
-    fitnesses_reef = np.array([ind.fitness["accuracy_validation"] for ind in reef if ind is not None])  # None are removed
 
-    fitness_mean = fitnesses_reef.mean()
-    fitness_std = fitnesses_reef.std()
-    fitness_max = fitnesses_reef.max()
-    fitness_min = fitnesses_reef.min()
+    fitness_mean = 0.0
+    fitness_std = 0.0
+    fitness_max = 0.0
+    fitness_min = 0.0
+
+    if len(filter(lambda w: w is not None, reef)) > 0:
+
+        fitnesses_reef = np.array([ind.fitness["accuracy_validation"] for ind in reef if ind is not None])  # None are removed
+
+        fitness_mean = fitnesses_reef.mean()
+        fitness_std = fitnesses_reef.std()
+        fitness_max = fitnesses_reef.max()
+        fitness_min = fitnesses_reef.min()
 
     return fitness_mean, fitness_std, fitness_max, fitness_min
 
