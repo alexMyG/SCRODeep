@@ -83,8 +83,7 @@ def runSCRO():
     generations_with_no_improvement = 0
 
     output_file = open("EXECUTION_" + str(time.time()) + ".csv", "w")
-    output_file.write("fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated,"
-                      " time_generation, reef\n")
+    output_file.write("fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated, ratio_reef, time_generation, reef\n")
 
     ##############################
     # Loop
@@ -132,21 +131,26 @@ def runSCRO():
 
         time_generation = finish_time-start_time
 
-        history.append([fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated,
-                        time_generation, deepcopy(reef)])
+        positions_free = len(filter(lambda w: w is not None, reef))
+        positions_total = len(reef)
+
+
+        history.append([fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated, str(positions_free) + "/" + str(positions_total), time_generation, deepcopy(reef)])
 
         output_file.write(str(fitness_mean) + "," +
-                          str(fitness_max) + "," +
                           str(fitness_std) + "," +
+                          str(fitness_max) + "," +
                           str(fitness_min) + "," +
                           str(count_evaluations) + "," +
                           str(individuals_depredated) + "," +
+                          str(positions_free) + "/" + str(positions_total) + ","
                           str(time_generation) + "," +
                           str(reef) + "\n")
 
         print colored(
             str(fitness_mean) + "," + str(fitness_std) + "," + str(fitness_max) + "," + str(fitness_min) + "," + str(
-                count_evaluations) + "," + str(individuals_depredated) + "," + str(time_generation), 'yellow')
+                count_evaluations) + "," + str(individuals_depredated) + "," +
+                str(positions_free) + "/" + str(positions_total) + "," + str(time_generation), 'yellow')
 
         if generations_with_no_improvement >= MAX_GENERATIONS_SCRO:
             print colored("Stop criterion reached! " + str(generations_with_no_improvement) + "generations with no "
