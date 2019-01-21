@@ -74,7 +74,7 @@ def runSCRO():
     # Initialisation
     ##############################
 
-    reef = initialisation(Rsize=4, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=5, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     history = []
