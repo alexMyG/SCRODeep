@@ -143,7 +143,7 @@ def runSCRO():
                           str(fitness_min) + "," +
                           str(count_evaluations) + "," +
                           str(individuals_depredated) + "," +
-                          str(positions_free) + "/" + str(positions_total) + ","
+                          str(positions_free) + "/" + str(positions_total) + "," +
                           str(time_generation) + "," +
                           str(reef) + "\n")
 
