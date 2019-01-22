@@ -74,7 +74,7 @@ def runSCRO():
     # Initialisation
     ##############################
 
-    reef = initialisation(Rsize=6, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=3, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     history = []
@@ -110,6 +110,7 @@ def runSCRO():
         pool = pool + sexual_new_individuals
 
         # 3 Larvae settlement
+        print colored("STARTING EVALUATION. INDIVIDUALS TO EVALUATE: " + str(len(pool)), "red")
         pool, count_evaluations = eval_population(pool, ke)
 
         print "POOL EVALUATED: "
@@ -138,7 +139,6 @@ def runSCRO():
 
         positions_free = len(filter(lambda w: w is not None, reef))
         positions_total = len(reef)
-
 
         history.append([fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated, str(positions_free) + "/" + str(positions_total), time_generation, deepcopy(reef)])
 
@@ -265,10 +265,19 @@ def asexual_selection(reef):
 
     population = filter(lambda w: w is not None, reef)
 
+
+
     fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(population)
     range_min = (fitness_mean + fitness_std)
     range_max = 1
     fragmentation = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max, population)
+
+    print colored("FRAGMENTATION: ", "yellow")
+    for i in population:
+        print colored("INDIVIDUAL: " + str(i.fitness["accuracy_validation"]), "yellow")
+
+    print colored("FITNESS GLOBAL: MEAN" + str(fitness_mean) + " STD: " + str(fitness_std), "yellow")
+    print colored("FITNESS MAX: " + str(range_max) + " MIN: " + str(range_min), "yellow")
 
     print colored("FRAGMENTATION: " + str(fragmentation), "yellow")
 
@@ -281,8 +290,12 @@ def asexual_selection(reef):
 
         aLarvae = deepcopy(fragmentation[idx])
 
+        print colored("SELECTED: " + str(aLarvae.fitness["accuracy_validation"]), "yellow")
+
     else:
         aLarvae = None
+        print colored("NOT SELECTED", "yellow")
+
 
 
     return aLarvae
@@ -394,6 +407,7 @@ def larvae_settlement(reef, population, max_attempts=2):
     print "new individuals to set: "
     for ind in population:
         print "---- " + str(ind.fitness["accuracy_validation"])
+
     print "--------------"
     for ind in population:
         print "++++++++++++INDIVIDUAL: " + str(ind.fitness["accuracy_validation"])
@@ -405,6 +419,7 @@ def larvae_settlement(reef, population, max_attempts=2):
         while attempts < max_attempts:
             print "ATTEMPT: " + str(attempts)
 
+            random.seed(time.time())
             new_random_position = random.randrange(0, len(reef))
             #print str(new_random_position)
             #print str(ind)
