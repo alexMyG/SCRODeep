@@ -421,7 +421,7 @@ def depredation(reef):
     not_none_population1 = len(filter(lambda w: w is not None, reef))
 
     # Deleting corals according to formula
-    reef = [None if ind is not None and range_min <= ind.fitness["accuracy_validation"] <= range_max else ind for ind in reef]
+    reef = [None if ind is not None and range_min <= ind.fitness["accuracy_validation"] < range_max else ind for ind in reef]
 
     not_none_population2 = len(filter(lambda w: w is not None, reef))
 
