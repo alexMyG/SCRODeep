@@ -14,7 +14,7 @@ from termcolor import colored
 from KerasExecutor import KerasExecutor
 from OperatorsDeep import complete_crossover, complete_mutation
 
-K.set_image_dim_ordering('th')
+K.set_image_dim_ordering('tf')
 
 METRICS = ["accuracy"]
 EARLY_STOPPING_PATIENCE_KERAS = 10

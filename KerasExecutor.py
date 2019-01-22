@@ -45,7 +45,7 @@ class KerasExecutor:
 
     def execute(self, individual):
 
-
+        time_start = time.time()
 
         train, test, target_train, target_test = train_test_split(self.x, self.y_hot_encoding, test_size=self.test_size,
                                                                   random_state=int(time.time()))
@@ -124,7 +124,9 @@ class KerasExecutor:
         accuracy_training = scores_training[model.metrics_names.index("acc")]
         accuracy_validation = scores_validation[model.metrics_names.index("acc")]
         accuracy_test = scores_test[model.metrics_names.index("acc")]
-        print colored("Individual evaluation: -Acc training: " + str(accuracy_training) + " -Acc val: " + str(accuracy_validation) + " -Acc test: " + str(accuracy_test), "blue")
+
+        time_finish = time.time()
+        print colored("Individual evaluation: -Acc training: " + str(accuracy_training) + " -Acc val: " + str(accuracy_validation) + " -Acc test: " + str(accuracy_test) + " -TIME: " + str(time_finish - time_start), "blue")
 
 
         return model.metrics_names, scores_training, scores_validation, scores_test, model

@@ -79,8 +79,8 @@
           "values" : ["valid", "same"],
           "type" : "categorical"
         },
-        "dim_ordering" : {
-          "values" : ["tf"],
+        "data_format" : {
+          "values" : ["channels_last"],
           "type" : "categorical"
         }
       }
