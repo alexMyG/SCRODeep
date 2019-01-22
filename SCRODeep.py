@@ -74,7 +74,7 @@ def runSCRO():
     # Initialisation
     ##############################
 
-    reef = initialisation(Rsize=5, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=3, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     history = []
@@ -101,7 +101,7 @@ def runSCRO():
             break
 
         # 1 Asexual reproduction
-        asexual_new_individual = asexual_reproduction(reef, configuration)
+        asexual_new_individual = deepcopy(asexual_reproduction(reef, configuration))
         if asexual_new_individual is not None:
             pool = pool + [asexual_new_individual]
 
@@ -111,6 +111,11 @@ def runSCRO():
 
         # 3 Larvae settlement
         pool, count_evaluations = eval_population(pool, ke)
+
+        print "POOL EVALUATED: "
+        for i in pool:
+            print "IND: " + str(i.fitness["accuracy_validation"])
+
         reef, settled = larvae_settlement(reef, pool)
 
         # 4  Depredation
@@ -239,6 +244,7 @@ def fitness_mean_std(reef):
 
 # Asexual reproduction
 
+
 def asexual_reproduction(reef, config):
 
     selected_individual = asexual_selection(reef)
@@ -246,6 +252,7 @@ def asexual_reproduction(reef, config):
     if selected_individual is not None:
         new_individual = mutation(selected_individual, config)
         new_individual.fitness = None
+
     return new_individual
 
 # Asexual selection
@@ -263,6 +270,8 @@ def asexual_selection(reef):
     range_max = 1
     fragmentation = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max, population)
 
+    print colored("FRAGMENTATION: " + str(fragmentation), "yellow")
+
     if len(fragmentation) > 0:
 
         # sorted_population = sorted(population, key=lambda coral: coral.fitness if coral is not None else -1, reverse=True)
@@ -274,6 +283,7 @@ def asexual_selection(reef):
 
     else:
         aLarvae = None
+
 
     return aLarvae
 
@@ -324,7 +334,7 @@ def sexual_reproduction(reef, config):
 
         ind1, ind2 = external_pairs[i], external_pairs[i+1]
 
-        new_individual = crossover(ind1, ind2, config)
+        new_individual = deepcopy(crossover(ind1, ind2, config))
         new_individual.fitness = None
         new_population.append(new_individual)
     ########################################################
@@ -333,13 +343,15 @@ def sexual_reproduction(reef, config):
     # Internal
     ########################################################
     for ind in internal_individuals:
-        new_individual = mutation(ind, config)
+        new_individual = deepcopy(mutation(ind, config))
         new_individual.fitness = None
         new_population.append(new_individual)
 
     ########################################################
 
     #print "NEW POL" + str(new_population)
+
+
     return new_population
 
 
@@ -376,26 +388,47 @@ def larvae_settlement(reef, population, max_attempts=2):
     :return: newFitness: fitness of the new population
     """
 
+
     settled = 0
 
+    print "new individuals to set: "
     for ind in population:
+        print "---- " + str(ind.fitness["accuracy_validation"])
+    print "--------------"
+    for ind in population:
+        print "++++++++++++INDIVIDUAL: " + str(ind.fitness["accuracy_validation"])
 
         #print "++" + str(ind)
         attempts = 0
 
 
         while attempts < max_attempts:
+            print "ATTEMPT: " + str(attempts)
 
             new_random_position = random.randrange(0, len(reef))
             #print str(new_random_position)
             #print str(ind)
             if reef[new_random_position] is None:
+                print "+++Candidate in reef: None"
+            else:
+                print "+++Candidate in reef: " + str(reef[new_random_position].fitness["accuracy_validation"])
+
+            if reef[new_random_position] is not None:
+                print "Comparing reef: " + str(reef[new_random_position].fitness["accuracy_validation"]) + \
+                      " against new: " + str(ind.fitness["accuracy_validation"])
+
+            if reef[new_random_position] is None:
                 reef[new_random_position] = ind
                 settled += 1
+                print "None position, so settled!"
+                break
             elif reef[new_random_position].fitness["accuracy_validation"] < ind.fitness["accuracy_validation"]:
                 reef[new_random_position] = ind
                 settled += 1
+                print "Worse position, so settled!"
+                break
 
+            print "Not settled " + str(attempts)
             attempts += 1
 
     return reef, settled
