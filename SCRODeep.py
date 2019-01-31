@@ -24,6 +24,13 @@ MAX_GENERATIONS_SCRO = 30
 TEST_SIZE = 0.5
 
 
+"""
+EXPERIMENTS:
+
+- 0: MNIST
+"""
+
+EXPERIMENT = 0
 
 
 """
@@ -40,12 +47,7 @@ class Configuration(object):
         self.__dict__ = json.load(j)
 
 
-def runSCRO():
-    """
-    RUNS THE SCRO ALGORITHM FOR DEEP LEARNING ARCHITECTURES OPTIMISATION
-    :return:
-    """
-
+def mnist_data_builder():
     # Loading MNIST dataset
     mnist_alternative_url = "https://github.com/amplab/datascience-sp14/raw/master/lab7/mldata/mnist-original.mat"
     mnist_path = "./mnist-original.mat"
@@ -64,6 +66,25 @@ def runSCRO():
         "DESCR": "mldata.org dataset: mnist-original",
     }
 
+    return dataset
+
+
+def runSCRO():
+    """
+    RUNS THE SCRO ALGORITHM FOR DEEP LEARNING ARCHITECTURES OPTIMISATION
+    :return:
+    """
+
+    dataset = None
+    if EXPERIMENT == 0:
+        print "EXPERIMENT WITH MNIST DATASET"
+        dataset = mnist_data_builder()
+    # elif EXPERIMENT == 1:
+    #    print "EXPERIMENT WITH ..."
+    #    dataset = my_call()
+    else:
+        print "EXPERIMENT NOT IMPLEMENTED!"
+
     print "Starting keras executor"
     ke = KerasExecutor(dataset, TEST_SIZE, METRICS, EARLY_STOPPING_PATIENCE_KERAS, LOSS)
 
@@ -74,7 +95,7 @@ def runSCRO():
     # Initialisation
     ##############################
 
-    reef = initialisation(Rsize=3, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=5, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     history = []
@@ -491,6 +512,9 @@ def eval_population(reef, ke):
     # print "New individuals evaluated: " + str(count)
             # ind.fitness = dummy_eval(ind)
     return reef, count
+
+
+
 
 
 runSCRO()
