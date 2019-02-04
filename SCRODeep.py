@@ -531,8 +531,8 @@ def eval_population(reef, ke):
         if ind is not None and ind.fitness is None:
             # TODO check if correct
             # If the fitness is not none, the individual did not change, so it keeps the same fitness
-            #ind.fitness = eval_keras(ind, ke)
-            ind.fitness = dummy_eval(ind)
+            ind.fitness = eval_keras(ind, ke)
+            #ind.fitness = dummy_eval(ind)
             count += 1
 
     # print "New individuals evaluated: " + str(count)
