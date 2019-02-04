@@ -103,8 +103,14 @@ def runSCRO():
     max_fitness_ever = 0.0
     generations_with_no_improvement = 0
 
-    output_file = open("EXECUTION_" + str(time.time()) + ".csv", "w")
-    output_file.write("fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated, ratio_reef, time_generation, reef\n")
+    ID_EXECUTION =  str(time.time())
+
+    output_file = open("EXECUTION_" + ID_EXECUTION + ".csv", "w")
+    output_file.write("fitness_mean,fitness_std,fitness_max,fitness_min,count_evaluations,individuals_depredated,ratio_reef,time_generation,reef\n")
+
+    output_file_population = open("EXECUTION_" + ID_EXECUTION + "_REEF_EVOLUTION.csv", "w")
+
+    output_file_population.write("generation,pos_in_reef,accuracy_validation,number_layers,accuracy_training,accuracy_test\n")
 
     ##############################
     # Loop
@@ -135,8 +141,8 @@ def runSCRO():
         pool, count_evaluations = eval_population(pool, ke)
 
         print "POOL EVALUATED: "
-        for i in pool:
-            print "IND: " + str(i.fitness["accuracy_validation"])
+        for ind_pool in pool:
+            print "IND: " + str(ind_pool.fitness["accuracy_validation"])
 
         reef, settled = larvae_settlement(reef, pool)
 
@@ -173,6 +179,25 @@ def runSCRO():
                           str(time_generation) + "," +
                           str(reef) + "\n")
 
+        # PRINTING THE STATUS OF THE REEF
+
+        for position_reef in range(len(reef)):
+
+            # Controlar nones
+            if reef[position_reef] is not None:
+                output_file_population.write(",".join([str(i), str(position_reef),
+                                                       str(reef[position_reef].fitness["accuracy_validation"]),
+                                                       str(reef[position_reef].fitness["number_layers"]),
+                                                       str(len(reef[position_reef].net_struct)),
+                                                       str(reef[position_reef].fitness["accuracy_training"]),
+                                                       str(reef[position_reef].fitness["accuracy_test"])]) + "\n")
+
+
+
+
+
+        # GENERATION,INDIVIDUAL_POSITION,
+
         print colored(
             str(fitness_mean) + "," + str(fitness_std) + "," + str(fitness_max) + "," + str(fitness_min) + "," + str(
                 count_evaluations) + "," + str(individuals_depredated) + "," +
@@ -184,6 +209,7 @@ def runSCRO():
             break
 
     output_file.close()
+    output_file_population.close()
 #################################################
 #################################################
 #                   SCRO                        #
@@ -505,8 +531,8 @@ def eval_population(reef, ke):
         if ind is not None and ind.fitness is None:
             # TODO check if correct
             # If the fitness is not none, the individual did not change, so it keeps the same fitness
-            ind.fitness = eval_keras(ind, ke)
-            # ind.fitness = dummy_eval(ind)
+            #ind.fitness = eval_keras(ind, ke)
+            ind.fitness = dummy_eval(ind)
             count += 1
 
     # print "New individuals evaluated: " + str(count)

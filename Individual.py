@@ -85,7 +85,7 @@ class Individual(object):
         return output
 
     def __repr__(self):
-        return "I: " + ",".join(map(str, self.net_struct))
+        return "I: L" + str(self.global_attributes.number_layers) + ",".join(map(str, self.net_struct))
 #################################################
 
 #################################################
@@ -149,6 +149,9 @@ def dummy_eval(individual):
         "accuracy_training": random.random(),
         "accuracy_test": random.random()
     }
+
+    # The number of layers attribute in the individual is not updated when using a dummy eval.
+
     return evaluation
 
 
