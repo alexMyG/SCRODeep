@@ -23,6 +23,7 @@ LOSS = "categorical_crossentropy"
 MAX_GENERATIONS_SCRO = 30
 TEST_SIZE = 0.5
 
+RSIZE = 6  # Rsize*Rsize
 
 """
 EXPERIMENTS:
@@ -95,7 +96,7 @@ def runSCRO():
     # Initialisation
     ##############################
 
-    reef = initialisation(Rsize=5, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=RSIZE, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
     # Population is already evaluated in the initialisation function
 
     history = []
