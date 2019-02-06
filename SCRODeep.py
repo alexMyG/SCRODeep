@@ -320,14 +320,14 @@ def asexual_selection(reef):
     range_max = 1
     fragmentation = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max, population)
 
-    print colored("FRAGMENTATION: ", "yellow")
-    for i in population:
-        print colored("INDIVIDUAL: " + str(i.fitness["accuracy_validation"]), "yellow")
+    #print colored("FRAGMENTATION: ", "yellow")
+    #for i in population:
+    #    print colored("INDIVIDUAL: " + str(i.fitness["accuracy_validation"]), "yellow")
 
-    print colored("FITNESS GLOBAL: MEAN" + str(fitness_mean) + " STD: " + str(fitness_std), "yellow")
-    print colored("FITNESS MAX: " + str(range_max) + " MIN: " + str(range_min), "yellow")
+    #print colored("FITNESS GLOBAL: MEAN" + str(fitness_mean) + " STD: " + str(fitness_std), "yellow")
+    #print colored("FITNESS MAX: " + str(range_max) + " MIN: " + str(range_min), "yellow")
 
-    print colored("FRAGMENTATION: " + str(fragmentation), "yellow")
+    #print colored("FRAGMENTATION: " + str(fragmentation), "yellow")
 
     if len(fragmentation) > 0:
 
@@ -338,11 +338,11 @@ def asexual_selection(reef):
 
         aLarvae = deepcopy(fragmentation[idx])
 
-        print colored("SELECTED: " + str(aLarvae.fitness["accuracy_validation"]), "yellow")
+        #print colored("SELECTED: " + str(aLarvae.fitness["accuracy_validation"]), "yellow")
 
     else:
         aLarvae = None
-        print colored("NOT SELECTED", "yellow")
+        #print colored("NOT SELECTED", "yellow")
 
 
 
@@ -453,45 +453,45 @@ def larvae_settlement(reef, population, max_attempts=2):
     settled = 0
 
     print "new individuals to set: "
-    for ind in population:
-        print "---- " + str(ind.fitness["accuracy_validation"])
+    #for ind in population:
+        #print "---- " + str(ind.fitness["accuracy_validation"])
 
     print "--------------"
     for ind in population:
-        print "++++++++++++INDIVIDUAL: " + str(ind.fitness["accuracy_validation"])
+        #print "++++++++++++INDIVIDUAL: " + str(ind.fitness["accuracy_validation"])
 
         #print "++" + str(ind)
         attempts = 0
 
 
         while attempts < max_attempts:
-            print "ATTEMPT: " + str(attempts)
+            #print "ATTEMPT: " + str(attempts)
 
             random.seed(time.time())
             new_random_position = random.randrange(0, len(reef))
             #print str(new_random_position)
             #print str(ind)
-            if reef[new_random_position] is None:
-                print "+++Candidate in reef: None"
-            else:
-                print "+++Candidate in reef: " + str(reef[new_random_position].fitness["accuracy_validation"])
+            #if reef[new_random_position] is None:
+            #    print "+++Candidate in reef: None"
+            #else:
+            #    print "+++Candidate in reef: " + str(reef[new_random_position].fitness["accuracy_validation"])
 
-            if reef[new_random_position] is not None:
-                print "Comparing reef: " + str(reef[new_random_position].fitness["accuracy_validation"]) + \
-                      " against new: " + str(ind.fitness["accuracy_validation"])
+            #if reef[new_random_position] is not None:
+            #    print "Comparing reef: " + str(reef[new_random_position].fitness["accuracy_validation"]) + \
+            #          " against new: " + str(ind.fitness["accuracy_validation"])
 
             if reef[new_random_position] is None:
                 reef[new_random_position] = ind
                 settled += 1
-                print "None position, so settled!"
+            #    print "None position, so settled!"
                 break
             elif reef[new_random_position].fitness["accuracy_validation"] < ind.fitness["accuracy_validation"]:
                 reef[new_random_position] = ind
                 settled += 1
-                print "Worse position, so settled!"
+            #    print "Worse position, so settled!"
                 break
 
-            print "Not settled " + str(attempts)
+            #print "Not settled " + str(attempts)
             attempts += 1
 
     return reef, settled
