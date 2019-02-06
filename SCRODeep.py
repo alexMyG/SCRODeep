@@ -141,9 +141,9 @@ def runSCRO():
         print colored("STARTING EVALUATION. INDIVIDUALS TO EVALUATE: " + str(len(pool)), "red")
         pool, count_evaluations = eval_population(pool, ke)
 
-        print "POOL EVALUATED: "
-        for ind_pool in pool:
-            print "IND: " + str(ind_pool.fitness["accuracy_validation"])
+        #print "POOL EVALUATED: "
+        #for ind_pool in pool:
+        #    print "IND: " + str(ind_pool.fitness["accuracy_validation"])
 
         reef, settled = larvae_settlement(reef, pool)
 
