@@ -7,6 +7,7 @@ reef_evolution_files = filter(lambda x: x.endswith("REEF_EVOLUTION.csv"), listdi
 
 
 
+
 #def plot_evolution_fitness_one_execution(file_name):
 
 
@@ -17,7 +18,7 @@ reef_evolution_files = filter(lambda x: x.endswith("REEF_EVOLUTION.csv"), listdi
 #plot_evolution_fitness_one_execution(reef_evolution_files[0])
 
 
-file_name = reef_evolution_files[0]
+file_name = reef_evolution_files[1]
 
 
-data = pd.read_csv(file_name, col)
+data = pd.read_csv(file_name)

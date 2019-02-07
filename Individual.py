@@ -166,7 +166,7 @@ def eval_keras(individual, ke):
     accuracy_validation = scores_validation[metrics_names.index("acc")]
     accuracy_test = scores_test[metrics_names.index("acc")]
 
-    number_layers = individual.global_attributes.number_layers
+    number_layers = len(individual.net_struct)
 
     evaluation = {
         "accuracy_validation": accuracy_validation,
