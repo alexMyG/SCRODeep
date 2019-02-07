@@ -22,3 +22,10 @@ file_name = reef_evolution_files[1]
 
 
 data = pd.read_csv(file_name)
+
+
+data.groupby('generation', as_index=False).agg({"accuracy_validation": ["mean", "std"],
+                                                "accuracy_training": ["mean", "std"],
+                                                "accuracy_test": ["mean", "std"]})
+
+
