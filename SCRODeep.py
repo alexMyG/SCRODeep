@@ -189,12 +189,8 @@ def runSCRO():
                 output_file_population.write(",".join([str(i), str(position_reef),
                                                        str(reef[position_reef].fitness["accuracy_validation"]),
                                                        str(reef[position_reef].fitness["number_layers"]),
-                                                       str(len(reef[position_reef].net_struct)),
                                                        str(reef[position_reef].fitness["accuracy_training"]),
                                                        str(reef[position_reef].fitness["accuracy_test"])]) + "\n")
-
-
-
 
 
         # GENERATION,INDIVIDUAL_POSITION,
