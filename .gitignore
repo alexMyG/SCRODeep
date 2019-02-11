@@ -1,3 +1,4 @@
+.DS_Store
 *.csv
 *.pyc
 execution*
@@ -5,7 +6,7 @@ EXECUTION*
 EXPERIMENT*
 # Created by https://www.gitignore.io/api/pycharm
 # Edit at https://www.gitignore.io/?templates=pycharm
-
+COPY_RESULTS*
 ### PyCharm ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio and WebStorm
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
