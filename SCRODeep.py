@@ -33,7 +33,6 @@ EXPERIMENTS:
 
 EXPERIMENT = 0
 
-
 """
 IMPORTANT NOTE
 
@@ -96,7 +95,8 @@ def runSCRO():
     # Initialisation
     ##############################
 
-    reef = initialisation(Rsize=RSIZE, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out, ke=ke)
+    reef = initialisation(Rsize=RSIZE, config=configuration, n_global_in=deepcopy(ke.n_in), n_global_out=ke.n_out,
+                          ke=ke)
     # Population is already evaluated in the initialisation function
 
     history = []
@@ -104,14 +104,20 @@ def runSCRO():
     max_fitness_ever = 0.0
     generations_with_no_improvement = 0
 
-    ID_EXECUTION =  str(time.time())
+    ID_EXECUTION = str(time.time())
 
     output_file = open("EXECUTION_" + ID_EXECUTION + ".csv", "w")
-    output_file.write("fitness_mean,fitness_std,fitness_max,fitness_min,count_evaluations,individuals_depredated,ratio_reef,time_generation,reef\n")
+    output_file.write("fitness_mean_validation,fitness_std_validation,fitness_max_validation,fitness_min_validation,"
+                      "fitness_mean_train,fitness_std_train,fitness_max_train,fitness_min_train,"
+                      "fitness_mean_test,fitness_std_test,fitness_max_test,fitness_min_test,"
+                      "count_evaluations,individuals_depredated,ratio_reef,time_generation,reef\n")
 
     output_file_population = open("EXECUTION_" + ID_EXECUTION + "_REEF_EVOLUTION.csv", "w")
 
-    output_file_population.write("generation,pos_in_reef,accuracy_validation,number_layers,accuracy_training,accuracy_test\n")
+    output_file_population.write(
+        "generation,pos_in_reef,accuracy_validation,number_layers,accuracy_training,accuracy_test\n")
+
+    output_file_individuals = open("EXECUTION_" + str(ID_EXECUTION) + "_INDIVIDUALS.txt", "w")
 
     ##############################
     # Loop
@@ -141,8 +147,8 @@ def runSCRO():
         print colored("STARTING EVALUATION. INDIVIDUALS TO EVALUATE: " + str(len(pool)), "red")
         pool, count_evaluations = eval_population(pool, ke)
 
-        #print "POOL EVALUATED: "
-        #for ind_pool in pool:
+        # print "POOL EVALUATED: "
+        # for ind_pool in pool:
         #    print "IND: " + str(ind_pool.fitness["accuracy_validation"])
 
         reef, settled = larvae_settlement(reef, pool)
@@ -153,34 +159,65 @@ def runSCRO():
 
         # History
 
-        fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(reef)
+        fitness = fitness_mean_std(reef)
 
-        if fitness_max > max_fitness_ever:
-            max_fitness_ever = fitness_max
+        fitness_mean_validation = fitness["validation"]["mean"]
+        fitness_std_validation = fitness["validation"]["std"]
+        fitness_max_validation = fitness["validation"]["max"]
+        fitness_min_validation = fitness["validation"]["min"]
+
+        fitness_mean_train = fitness["train"]["mean"]
+        fitness_std_train = fitness["train"]["std"]
+        fitness_max_train = fitness["train"]["max"]
+        fitness_min_train = fitness["train"]["min"]
+
+        fitness_mean_test = fitness["test"]["mean"]
+        fitness_std_test = fitness["test"]["std"]
+        fitness_max_test = fitness["test"]["max"]
+        fitness_min_test = fitness["test"]["min"]
+
+        if fitness_max_validation > max_fitness_ever:
+            max_fitness_ever = fitness_max_validation
             generations_with_no_improvement = 0
         else:
             generations_with_no_improvement += 1
 
         finish_time = time.time()
 
-        time_generation = finish_time-start_time
+        time_generation = finish_time - start_time
 
         positions_free = len(filter(lambda w: w is not None, reef))
         positions_total = len(reef)
 
-        history.append([fitness_mean, fitness_std, fitness_max, fitness_min, count_evaluations, individuals_depredated, str(positions_free) + "/" + str(positions_total), time_generation, deepcopy(reef)])
+        history.append([fitness_mean_validation, fitness_std_validation, fitness_max_validation, fitness_min_validation,
+                        fitness_mean_train, fitness_std_train, fitness_max_train, fitness_min_train,
+                        fitness_mean_test, fitness_std_test, fitness_max_test, fitness_min_test,
+                        count_evaluations, individuals_depredated,
+                        str(positions_free) + "/" + str(positions_total), time_generation, deepcopy(reef)])
 
-        output_file.write(str(fitness_mean) + "," +
-                          str(fitness_std) + "," +
-                          str(fitness_max) + "," +
-                          str(fitness_min) + "," +
+        output_file.write(str(fitness_mean_validation) + "," +
+                          str(fitness_std_validation) + "," +
+                          str(fitness_max_validation) + "," +
+                          str(fitness_min_validation) + "," +
+
+                          str(fitness_mean_train) + "," +
+                          str(fitness_std_train) + "," +
+                          str(fitness_max_train) + "," +
+                          str(fitness_min_train) + "," +
+
+                          str(fitness_mean_test) + "," +
+                          str(fitness_std_test) + "," +
+                          str(fitness_max_test) + "," +
+                          str(fitness_min_test) + "," +
+
                           str(count_evaluations) + "," +
                           str(individuals_depredated) + "," +
                           str(positions_free) + "/" + str(positions_total) + "," +
                           str(time_generation) + "," +
                           str(reef) + "\n")
 
-        # PRINTING THE STATUS OF THE REEF
+        # PRINTING THE STATUS OF THE REEF and INDIVIDUALS DEFINITION
+        output_file_individuals.write("GENERATION: " + str(i) + " - POSITION IN REEF: " + str(position_reef) + "\n")
 
         for position_reef in range(len(reef)):
 
@@ -192,13 +229,21 @@ def runSCRO():
                                                        str(reef[position_reef].fitness["accuracy_training"]),
                                                        str(reef[position_reef].fitness["accuracy_test"])]) + "\n")
 
+                # PRINTING INDIVIDUALS:
+                output_file_individuals.write(reef[position_reef].toString())
+
+
+        output_file_individuals.write("----------------------------------------------------------\n")
+        output_file_individuals.write("----------------------------------------------------------\n")
+        output_file_individuals.write("----------------------------------------------------------\n\n\n")
+        
 
         # GENERATION,INDIVIDUAL_POSITION,
 
         print colored(
             str(fitness_mean) + "," + str(fitness_std) + "," + str(fitness_max) + "," + str(fitness_min) + "," + str(
                 count_evaluations) + "," + str(individuals_depredated) + "," +
-                str(positions_free) + "/" + str(positions_total) + "," + str(time_generation), 'yellow')
+            str(positions_free) + "/" + str(positions_total) + "," + str(time_generation), 'yellow')
 
         if generations_with_no_improvement >= MAX_GENERATIONS_SCRO:
             print colored("Stop criterion reached! " + str(generations_with_no_improvement) + "generations with no "
@@ -207,12 +252,14 @@ def runSCRO():
 
     output_file.close()
     output_file_population.close()
+    output_file_individuals.close()
+
+
 #################################################
 #################################################
 #                   SCRO                        #
 #################################################
 #################################################
-
 
 
 #  OPERATORS
@@ -233,64 +280,92 @@ def initialisation(Rsize, config, n_global_in, n_global_out, ke):
     """
     # Creating population of Rsize*Rsize new random individuals
     # population = [[Individual(config, n_global_in, n_global_out)]*Rsize for _ in range(Rsize)]
-    reef = [Individual(config, n_global_in, n_global_out) for _ in range(Rsize*Rsize)]
+    reef = [Individual(config, n_global_in, n_global_out) for _ in range(Rsize * Rsize)]
     print "Reef created with " + str(len(reef)) + " solutions"
     print "Original size: " + str(len(reef))
 
     # Eval population
 
     reef, count_evaluations = eval_population(reef, ke)
-    #for ind in reef:
+    # for ind in reef:
     #    print str(ind.fitness)
 
     # Calculating fitness mean and std deviation
-    fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(reef)
+    fitness = fitness_mean_std(reef)
+
+    fitness_mean_validation = fitness["validation"]["mean"]
+    fitness_std_validation = fitness["validation"]["std"]
+    fitness_max_validation = fitness["validation"]["max"]
+    fitness_min_validation = fitness["validation"]["min"]
 
     # Deleting corals according to formula
     # It is not the same that the depredation one
     # new_population = [[ind if initial_deletion_check(ind.fitness, fitness_mean, fitness_std) else None for ind in line ] for line in population]
     new_reef = [
-        ind if initial_deletion_check(ind.fitness["accuracy_validation"], fitness_mean, fitness_std) else None for
+        ind if initial_deletion_check(ind.fitness["accuracy_validation"], fitness_mean_validation, fitness_std_validation) else None for
         ind in reef]
 
     print "Population reduced to: " + str(len(filter(lambda w: w is not None, new_reef))) + " solutions"
 
-    #for ind in filter(lambda w: w is not None, new_reef):
+    # for ind in filter(lambda w: w is not None, new_reef):
     #    print str(ind.fitness)
 
     return new_reef
 
-def initial_deletion_check(fitness, fitness_mean, fitness_std):
 
+def initial_deletion_check(fitness, fitness_mean, fitness_std):
     return (fitness_mean - fitness_std) < fitness <= 1
 
 
 def fitness_mean_std(reef):
-
     # fitnesses_reef = np.array([[eval_keras(x, ke) if x is not None else None for x in line ] for line in population])
 
-
-    fitness_mean = 0.0
-    fitness_std = 0.0
-    fitness_max = 0.0
-    fitness_min = 0.0
+    fitness = {"validation": {"mean": 0.0,
+                              "std": 0.0,
+                              "max": 0.0,
+                              "min": 0.0},
+               "test":       {"mean": 0.0,
+                              "std": 0.0,
+                              "max": 0.0,
+                              "min": 0.0},
+               "train":      {"mean": 0.0,
+                              "std": 0.0,
+                              "max": 0.0,
+                              "min": 0.0}
+               }
 
     if len(filter(lambda w: w is not None, reef)) > 0:
+        fitness_validation_reef = np.array(
+            [ind.fitness["accuracy_validation"] for ind in reef if ind is not None])  # None are removed
 
-        fitnesses_reef = np.array([ind.fitness["accuracy_validation"] for ind in reef if ind is not None])  # None are removed
+        fitness["validation"]["mean"] = fitness_validation_reef.mean()
+        fitness["validation"]["std"] = fitness_validation_reef.std()
+        fitness["validation"]["max"] = fitness_validation_reef.max()
+        fitness["validation"]["min"] = fitness_validation_reef.min()
 
-        fitness_mean = fitnesses_reef.mean()
-        fitness_std = fitnesses_reef.std()
-        fitness_max = fitnesses_reef.max()
-        fitness_min = fitnesses_reef.min()
+        fitness_test_reef = np.array(
+            [ind.fitness["accuracy_test"] for ind in reef if ind is not None])  # None are removed
 
-    return fitness_mean, fitness_std, fitness_max, fitness_min
+        fitness["test"]["mean"] = fitness_test_reef.mean()
+        fitness["test"]["std"] = fitness_test_reef.std()
+        fitness["test"]["max"] = fitness_test_reef.max()
+        fitness["test"]["min"] = fitness_test_reef.min()
+
+        fitness_train_reef = np.array(
+            [ind.fitness["accuracy_training"] for ind in reef if ind is not None])  # None are removed
+
+        fitness["train"]["mean"] = fitness_train_reef.mean()
+        fitness["train"]["std"] = fitness_train_reef.std()
+        fitness["train"]["max"] = fitness_train_reef.max()
+        fitness["train"]["min"] = fitness_train_reef.min()
+
+    return fitness
+
 
 # Asexual reproduction
 
 
 def asexual_reproduction(reef, config):
-
     selected_individual = asexual_selection(reef)
     new_individual = None
     if selected_individual is not None:
@@ -298,6 +373,7 @@ def asexual_reproduction(reef, config):
         new_individual.fitness = None
 
     return new_individual
+
 
 # Asexual selection
 def asexual_selection(reef):
@@ -309,21 +385,25 @@ def asexual_selection(reef):
 
     population = filter(lambda w: w is not None, reef)
 
+    fitness = fitness_mean_std(population)
 
+    fitness_mean = fitness["validation"]["mean"]
+    fitness_std = fitness["validation"]["std"]
+    fitness_max = fitness["validation"]["max"]
+    fitness_min = fitness["validation"]["min"]
 
-    fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(population)
     range_min = (fitness_mean + fitness_std)
     range_max = 1
     fragmentation = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max, population)
 
-    #print colored("FRAGMENTATION: ", "yellow")
-    #for i in population:
+    # print colored("FRAGMENTATION: ", "yellow")
+    # for i in population:
     #    print colored("INDIVIDUAL: " + str(i.fitness["accuracy_validation"]), "yellow")
 
-    #print colored("FITNESS GLOBAL: MEAN" + str(fitness_mean) + " STD: " + str(fitness_std), "yellow")
-    #print colored("FITNESS MAX: " + str(range_max) + " MIN: " + str(range_min), "yellow")
+    # print colored("FITNESS GLOBAL: MEAN" + str(fitness_mean) + " STD: " + str(fitness_std), "yellow")
+    # print colored("FITNESS MAX: " + str(range_max) + " MIN: " + str(range_min), "yellow")
 
-    #print colored("FRAGMENTATION: " + str(fragmentation), "yellow")
+    # print colored("FRAGMENTATION: " + str(fragmentation), "yellow")
 
     if len(fragmentation) > 0:
 
@@ -334,15 +414,14 @@ def asexual_selection(reef):
 
         aLarvae = deepcopy(fragmentation[idx])
 
-        #print colored("SELECTED: " + str(aLarvae.fitness["accuracy_validation"]), "yellow")
+        # print colored("SELECTED: " + str(aLarvae.fitness["accuracy_validation"]), "yellow")
 
     else:
         aLarvae = None
-        #print colored("NOT SELECTED", "yellow")
-
-
+        # print colored("NOT SELECTED", "yellow")
 
     return aLarvae
+
 
 # Sexual reproduction
 def sexual_reproduction(reef, config):
@@ -354,14 +433,20 @@ def sexual_reproduction(reef, config):
 
     not_none_population = filter(lambda w: w is not None, reef)
 
-    fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(not_none_population)
+    fitness = fitness_mean_std(not_none_population)
+
+    fitness_mean = fitness["validation"]["mean"]
+    fitness_std = fitness["validation"]["std"]
+    fitness_max = fitness["validation"]["max"]
+    fitness_min = fitness["validation"]["min"]
 
     range_min = (fitness_mean - fitness_std)
     range_max = 1
 
     # Population subset for EXTERNAL sexual reproduction
     # Todo: check if max bound can be removed
-    external_pairs = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max, not_none_population)
+    external_pairs = filter(lambda ind: range_min < ind.fitness["accuracy_validation"] <= range_max,
+                            not_none_population)
 
     # Population subset for INTERNAL sexual reproduction
     internal_individuals = filter(lambda ind: range_min >= ind.fitness["accuracy_validation"], not_none_population)
@@ -372,7 +457,6 @@ def sexual_reproduction(reef, config):
         # Todo check if this is correct
         # sorted_population = sorted(external_pairs, key=lambda ind: ind.fitness, reverse=False)
         # min_num = min(external_pairs, key=attrgetter('fitn'))
-
 
         # moving worst individual
         internal_individuals.append(external_pairs[new_random_position])
@@ -388,8 +472,7 @@ def sexual_reproduction(reef, config):
     shuffle(external_pairs)
 
     for i in range(0, len(external_pairs), 2):
-
-        ind1, ind2 = external_pairs[i], external_pairs[i+1]
+        ind1, ind2 = external_pairs[i], external_pairs[i + 1]
 
         new_individual = deepcopy(crossover(ind1, ind2, config))
         new_individual.fitness = None
@@ -406,8 +489,7 @@ def sexual_reproduction(reef, config):
 
     ########################################################
 
-    #print "NEW POL" + str(new_population)
-
+    # print "NEW POL" + str(new_population)
 
     return new_population
 
@@ -415,7 +497,6 @@ def sexual_reproduction(reef, config):
 # Crossover
 # Todo: set this parameter according to evodeep
 def crossover(ind1, ind2, config, indpb=0.5):
-
     # Fix crossover to get 1 individual
     new_individual1, new_individual2 = complete_crossover(ind1=ind1, ind2=ind2, indpb=indpb, config=config)
 
@@ -425,8 +506,8 @@ def crossover(ind1, ind2, config, indpb=0.5):
 # Mutation
 # Todo: to set these parameters according to evodeep
 def mutation(ind, config, indpb=0.5, prob_add_remove_layer=0.5):
-
-    new_individual = complete_mutation(ind1=ind, indpb=indpb, prob_add_remove_layer=prob_add_remove_layer, config=config)
+    new_individual = complete_mutation(ind1=ind, indpb=indpb, prob_add_remove_layer=prob_add_remove_layer,
+                                       config=config)
     return new_individual
 
 
@@ -445,52 +526,51 @@ def larvae_settlement(reef, population, max_attempts=2):
     :return: newFitness: fitness of the new population
     """
 
-
     settled = 0
 
     print "new individuals to set: "
-    #for ind in population:
-        #print "---- " + str(ind.fitness["accuracy_validation"])
+    # for ind in population:
+    # print "---- " + str(ind.fitness["accuracy_validation"])
 
     print "--------------"
     for ind in population:
-        #print "++++++++++++INDIVIDUAL: " + str(ind.fitness["accuracy_validation"])
+        # print "++++++++++++INDIVIDUAL: " + str(ind.fitness["accuracy_validation"])
 
-        #print "++" + str(ind)
+        # print "++" + str(ind)
         attempts = 0
 
-
         while attempts < max_attempts:
-            #print "ATTEMPT: " + str(attempts)
+            # print "ATTEMPT: " + str(attempts)
 
             random.seed(time.time())
             new_random_position = random.randrange(0, len(reef))
-            #print str(new_random_position)
-            #print str(ind)
-            #if reef[new_random_position] is None:
+            # print str(new_random_position)
+            # print str(ind)
+            # if reef[new_random_position] is None:
             #    print "+++Candidate in reef: None"
-            #else:
+            # else:
             #    print "+++Candidate in reef: " + str(reef[new_random_position].fitness["accuracy_validation"])
 
-            #if reef[new_random_position] is not None:
+            # if reef[new_random_position] is not None:
             #    print "Comparing reef: " + str(reef[new_random_position].fitness["accuracy_validation"]) + \
             #          " against new: " + str(ind.fitness["accuracy_validation"])
 
             if reef[new_random_position] is None:
                 reef[new_random_position] = ind
                 settled += 1
-            #    print "None position, so settled!"
+                #    print "None position, so settled!"
                 break
             elif reef[new_random_position].fitness["accuracy_validation"] < ind.fitness["accuracy_validation"]:
                 reef[new_random_position] = ind
                 settled += 1
-            #    print "Worse position, so settled!"
+                #    print "Worse position, so settled!"
                 break
 
-            #print "Not settled " + str(attempts)
+            # print "Not settled " + str(attempts)
             attempts += 1
 
     return reef, settled
+
 
 # Depredation
 def depredation(reef):
@@ -505,15 +585,21 @@ def depredation(reef):
     """
 
     # Calculating fitness mean and std deviation
-    fitness_mean, fitness_std, fitness_max, fitness_min = fitness_mean_std(reef)
+    fitness = fitness_mean_std(reef)
+    fitness_mean = fitness["validation"]["mean"]
+    fitness_std = fitness["validation"]["std"]
+    fitness_max = fitness["validation"]["max"]
+    fitness_min = fitness["validation"]["min"]
+
 
     range_min = 0
-    range_max = (fitness_mean - (2*fitness_std))
+    range_max = (fitness_mean - (2 * fitness_std))
 
     not_none_population1 = len(filter(lambda w: w is not None, reef))
 
     # Deleting corals according to formula
-    reef = [None if ind is not None and range_min <= ind.fitness["accuracy_validation"] < range_max else ind for ind in reef]
+    reef = [None if ind is not None and range_min <= ind.fitness["accuracy_validation"] < range_max else ind for ind in
+            reef]
 
     not_none_population2 = len(filter(lambda w: w is not None, reef))
 
@@ -529,15 +615,12 @@ def eval_population(reef, ke):
             # TODO check if correct
             # If the fitness is not none, the individual did not change, so it keeps the same fitness
             ind.fitness = eval_keras(ind, ke)
-            #ind.fitness = dummy_eval(ind)
+            # ind.fitness = dummy_eval(ind)
             count += 1
 
     # print "New individuals evaluated: " + str(count)
-            # ind.fitness = dummy_eval(ind)
+    # ind.fitness = dummy_eval(ind)
     return reef, count
-
-
-
 
 
 runSCRO()
