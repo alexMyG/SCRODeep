@@ -72,6 +72,9 @@ class Individual(object):
         for item in sorted(global_attributes_dictionary.keys()):
             output += "Global attribute " + str(item) + ": " + str(global_attributes_dictionary[item]) + "\n"
 
+        output += "\nFITNESS: " + str(self.fitness) + "\n"
+
+
         output += "Net structure: \n"
 
         for index, layer in enumerate(self.net_struct):
